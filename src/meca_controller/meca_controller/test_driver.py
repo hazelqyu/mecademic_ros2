@@ -3,8 +3,9 @@
 import mecademicpy.robot as mdr
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose,Twist
 from sensor_msgs.msg import JointState
+import time
 
 class MecademicRobotDriver(Node):
     def __init__(self):
@@ -29,11 +30,23 @@ class MecademicRobotDriver(Node):
         # Set up subscriber to recieve ROS command
         self.pose_subscriber = self.create_subscription(Pose, "mecademic_robot_pose", self.pose_callback, 10)
         self.joint_subscriber = self.create_subscription(JointState, "mecademic_robot_joint", self.joint_callback, 10)
+        self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
         
         # TODO: Set up services
         
         # Keep track of error state:
         self.is_in_error = False
+        
+        # For xbox controller
+        # Initialize movement variables
+        self.target_velocity = 0.0
+        self.scale_factor = 10.0  # Adjust as needed
+        self.prev_velocity = 0.0
+        self.last_update_time = time.time()
+        
+        # Set up a timer to mimic the Unity update loop
+        self.update_rate = 0.02  # 50 Hz, similar to Unity frame rate
+        self.create_timer(self.update_rate, self.update_movement)
         
     def stop(self):
         try:
@@ -76,6 +89,25 @@ class MecademicRobotDriver(Node):
         # Move robot joints based on received joint positions
         self.robot.MoveJoints(joints.position[0], joints.position[1], joints.position[2],
                               joints.position[3], joints.position[4], joints.position[5])
+    
+    def set_joint_vel_callback(self, joints_vel):
+        self.target_velocity = joints_vel.linear.x * self.scale_factor
+        
+    def update_movement(self):
+        # Calculate delta time for scaling the movement
+        current_time = time.time()
+        delta_time = current_time - self.last_update_time
+        self.last_update_time = current_time
+        
+        # Smooth the movement by blending previous and current velocity
+        smoothed_velocity = self.prev_velocity * 0.8 + self.target_velocity * 0.2
+        self.prev_velocity = smoothed_velocity
+        
+        # Move the robot based on smoothed velocity scaled by delta time
+        try:
+            self.robot.MoveJointsRel(smoothed_velocity * delta_time, 0.0, 0.0, 0.0, 0.0, 0.0)
+        except ValueError as e:
+            self.get_logger().error(f"Error in MoveJointsVel: {e}")
         
 def main(args=None):
     # Initialize ROS 2 Python client library

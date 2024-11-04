@@ -29,6 +29,8 @@ class JointStatePublisher(Node):
         # Publish the joint state message
         self.publisher_.publish(self.joint_state)
         self.get_logger().info("Joint state published")
+    
+
 
 def main(args=None):
     rclpy.init(args=args)
