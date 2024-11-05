@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="meca_500_r3">
+  <!-- Gazebo ROS control plugin -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/meca_500_r3</robotNamespace>
+    </plugin>
+  </gazebo>
+  
+  <!-- Fixed base link to the world -->
+  <link name="world"/>
+
+  <joint name="fixed_base_joint" type="fixed">
+    <parent link="world"/>
+    <child link="meca_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Base link is the center of the robot's bottom plate -->
+  <link name="meca_base_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="2.0"/>
+      <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_base.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_base_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint 1 -->
+  <link name="meca_axis_1_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j1.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j1_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="meca_axis_1_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.012498 0 0.091"/>
+    <parent link="meca_base_link"/>
+    <child link="meca_axis_1_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10.0" lower="-3.05433" upper="3.05433" velocity="2.61799"/>
+  </joint>
+
+  <transmission name="transmission_meca_axis_1_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_1_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- Joint 2 -->
+  <link name="meca_axis_2_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <inertia ixx="0.015" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.015"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j2.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j2_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="meca_axis_2_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.044"/>
+    <parent link="meca_axis_1_link"/>
+    <child link="meca_axis_2_link"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="10.0" lower="-1.22173048" upper="1.5708" velocity="2.61799"/>
+  </joint>
+
+  <transmission name="transmission_meca_axis_2_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_2_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_2">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- Joint 3 -->
+  <link name="meca_axis_3_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.6"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j3.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j3_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="meca_axis_3_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.135"/>
+    <parent link="meca_axis_2_link"/>
+    <child link="meca_axis_3_link"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="10.0" lower="-2.35619" upper="1.22173048" velocity="3.14159"/>
+  </joint>
+
+  <transmission name="transmission_meca_axis_3_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_3_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- Joint 4 -->
+  <link name="meca_axis_4_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.008" ixy="0.0" ixz="0.0" iyy="0.008" iyz="0.0" izz="0.008"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j4.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j4_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="meca_axis_4_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.038"/>
+    <parent link="meca_axis_3_link"/>
+    <child link="meca_axis_4_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="10.0" lower="-2.96706" upper="2.96706" velocity="5.23599"/>
+  </joint>
+
+  <transmission name="transmission_meca_axis_4_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_4_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_4">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- Joint 5 -->
+  <link name="meca_axis_5_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.4"/>
+      <inertia ixx="0.005" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j5.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mecademic_description/meshes/meca_500_r3_j5_collision.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="meca_axis_5_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.12 0 0"/>
+    <parent link="meca_axis_4_link"/>
+    <child link="meca_axis_5_link"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="10.0" lower="-2.00713" upper="2.00713" velocity="5.23599"/>
+  </joint>
+
+  <transmission name="transmission_meca_axis_5_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_5_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+<!-- Joint 6 with Camera -->
+<!-- Link for the camera mounted on the end effector -->
+<link name="meca_axis_6_link">
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.3"/>
+        <inertia ixx="0.003" ixy="0.0" ixz="0.0" iyy="0.003" iyz="0.0" izz="0.003"/>
+    </inertial>
+    <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+            <mesh filename="package://mecademic_description/meshes/meca_500_r3_j6.dae"/>
+        </geometry>
+    </visual>
+    <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+            <mesh filename="package://mecademic_description/meshes/meca_500_r3_j6_collision.stl"/>
+        </geometry>
+    </collision>
+</link>
+
+<!-- Joint Definition -->
+<joint name="meca_axis_6_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.07 0 0"/>
+    <parent link="meca_axis_5_link"/>
+    <child link="meca_axis_6_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="10.0" lower="-3.14159" upper="3.14159" velocity="8.72665"/>
+</joint>
+
+<!-- Transmission -->
+<transmission name="transmission_meca_axis_6_joint">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="meca_axis_6_joint">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor_meca_axis_6">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+</transmission>
+</robot>
