@@ -6,6 +6,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
 from sensor_msgs.msg import JointState
 import time
+import math
 
 class MecademicRobotDriver(Node):
     def __init__(self):
@@ -20,16 +21,17 @@ class MecademicRobotDriver(Node):
         print('ready.')
         
         # Set monitoring interval for real time data:
-        self.MONITORING_INTERVAL = 0.001 # seconds TODO ADJUST THIS
+        self.MONITORING_INTERVAL = 0.1 # seconds TODO ADJUST THIS
         self.robot.SetMonitoringInterval(self.MONITORING_INTERVAL)
-        DATA_LOGGING_TIME_INTERVAL = .001 # seconds TODO ADJUST THIS
+        DATA_LOGGING_TIME_INTERVAL = 0.1 # seconds TODO ADJUST THIS
         self.create_timer(DATA_LOGGING_TIME_INTERVAL, self.timed_data_logging_callback)
         
         # TODO: create publisher for feedback data
+        self.joint_publisher = self.create_publisher(JointState, "/joint_states", 10)
         
         # Set up subscriber to recieve ROS command
-        self.pose_subscriber = self.create_subscription(Pose, "mecademic_robot_pose", self.pose_callback, 10)
-        self.joint_subscriber = self.create_subscription(JointState, "mecademic_robot_joint", self.joint_callback, 10)
+        self.pose_subscriber = self.create_subscription(Pose, "/mecademic_robot_pose", self.pose_callback, 10)
+        self.joint_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint", self.joint_callback, 10)
         self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
         
         # TODO: Set up services
@@ -79,8 +81,26 @@ class MecademicRobotDriver(Node):
         self.is_in_error = robot_status.error_status
         if self.is_in_error:
             self.handle_error()
-            
-    
+        
+        self.get_logger().info("Publishing joint states")
+
+        data = self.robot.GetRobotRtData(synchronous_update=True) 
+        joint_state = JointState()
+        joint_state.header.stamp = self.get_clock().now().to_msg()
+        joint_state.name = ['meca_axis_1_joint','meca_axis_2_joint','meca_axis_3_joint','meca_axis_4_joint','meca_axis_5_joint','meca_axis_6_joint']
+        joint_state.position = [
+            math.radians(data.rt_joint_pos.data[0]),
+            math.radians(data.rt_joint_pos.data[1]),
+            math.radians(data.rt_joint_pos.data[2]),
+            math.radians(data.rt_joint_pos.data[3]),
+            math.radians(data.rt_joint_pos.data[4]),
+            math.radians(data.rt_joint_pos.data[5])
+        ]
+        # joint_state.velocity = [data.rt_joint_vel.data[0],data.rt_joint_vel.data[1],data.rt_joint_vel.data[2],
+        #                         data.rt_joint_vel.data[3],data.rt_joint_vel.data[4],data.rt_joint_vel.data[5]]
+        self.joint_publisher.publish(joint_state)
+        
+        
     def pose_callback(self, pose):
         self.get_logger().info("Received pose message")
 

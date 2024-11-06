@@ -1,12 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+<!-- <?xml version="1.0" encoding="utf-8"?> -->
 <robot name="meca_500_r3">
-  <!-- Gazebo ROS control plugin -->
-  <gazebo>
-    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-      <robotNamespace>/meca_500_r3</robotNamespace>
-    </plugin>
-  </gazebo>
-  
   <!-- Fixed base link to the world -->
   <link name="world"/>
 
@@ -237,9 +230,9 @@
     </actuator>
   </transmission>
 
-<!-- Joint 6 with Camera -->
-<!-- Link for the camera mounted on the end effector -->
-<link name="meca_axis_6_link">
+  <!-- Joint 6 with Camera -->
+  <!-- Link for the camera mounted on the end effector -->
+  <link name="meca_axis_6_link">
     <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.3"/>
@@ -257,19 +250,19 @@
             <mesh filename="package://mecademic_description/meshes/meca_500_r3_j6_collision.stl"/>
         </geometry>
     </collision>
-</link>
+  </link>
 
-<!-- Joint Definition -->
-<joint name="meca_axis_6_joint" type="revolute">
+  <!-- Joint Definition -->
+  <joint name="meca_axis_6_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0.07 0 0"/>
     <parent link="meca_axis_5_link"/>
     <child link="meca_axis_6_link"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-3.14159" upper="3.14159" velocity="8.72665"/>
-</joint>
+  </joint>
 
-<!-- Transmission -->
-<transmission name="transmission_meca_axis_6_joint">
+  <!-- Transmission -->
+  <transmission name="transmission_meca_axis_6_joint">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="meca_axis_6_joint">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -278,5 +271,6 @@
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-</transmission>
+  </transmission>
 </robot>
+

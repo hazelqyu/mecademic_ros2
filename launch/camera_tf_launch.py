@@ -25,7 +25,7 @@ def generate_launch_description():
                 LaunchConfiguration('roll'),
                 LaunchConfiguration('pitch'),
                 LaunchConfiguration('yaw'),
-                'robot_base_frame',  # Parent frame ID (robot base)
+                'world',  # Parent frame ID (robot base)
                 'camera_frame'       # Child frame ID (camera)
             ]
         )
