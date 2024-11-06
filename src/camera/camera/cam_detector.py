@@ -10,6 +10,9 @@ import math
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Header
+
 
 
 class FaceDetector(Node):
@@ -24,13 +27,13 @@ class FaceDetector(Node):
 
         # Calculate focal length using the 78° FoV and 640-pixel width
         horizontal_fov = 78  # Horizontal field of view in degrees
-        image_width = 640  # Resolution width in pixels
+        image_width = 320  # Resolution width in pixels
         self.focal_length = image_width / (2 * math.tan(math.radians(horizontal_fov / 2)))
-        self.cx = 320
-        self.cy = 240
+        self.cx = 160
+        self.cy = 120
         
         # Real-world width of the object in meters
-        self.object_real_width = 0.18
+        self.object_real_width = 0.2
         self.obj_depth = None
         self.obj_width = 0.0
         self.obj_center = []
@@ -39,6 +42,8 @@ class FaceDetector(Node):
         # Initialize TF buffer and listener
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
+        
+        self.obj_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
 
     def image_callback(self, msg):
         try:
@@ -50,7 +55,9 @@ class FaceDetector(Node):
             
         self.detect_object(frame)
         if self.obj_depth and self.obj_center:
+            self.get_logger().info(f"Object Center in base frame:{self.obj_center}")
             self.obj_pos = self.pos_transform(self.obj_center,self.obj_depth)
+            self.lookat(self.obj_pos)
         
         # Show the result
         cv2.imshow("Blue Object Detection with Depth", frame)
@@ -93,7 +100,7 @@ class FaceDetector(Node):
         
         try:
             # Transform the point to the robot base frame
-            point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", timeout=rclpy.duration.Duration(seconds=1.0))
+            point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
 
             target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
             self.get_logger().info(f"Object position in base frame:{point_in_base_frame.point}")
@@ -104,6 +111,50 @@ class FaceDetector(Node):
             self.get_logger().error(f"Transform error: {e}")
             return None
 
+    def lookat(self,target_position):
+        try:
+            # Lookup the transform from "meca_axis_5_link" (end effector) to "meca_base_link" (base frame)
+            end_effector_in_base_frame = self.tf_buffer.lookup_transform(
+                "meca_base_link",         # Target frame
+                "meca_axis_5_link",       # Source frame (end effector)
+                rclpy.time.Time(),        # Time (use the latest available transform)
+                timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
+            )
+            
+            # Extract the translation component of the transform (end-effector position in the base frame)
+            end_effector_x = end_effector_in_base_frame.transform.translation.x
+            end_effector_y = end_effector_in_base_frame.transform.translation.y
+            end_effector_z = end_effector_in_base_frame.transform.translation.z
+
+            # Convert to a NumPy array for easier manipulation
+            end_effector_position = np.array([end_effector_x, end_effector_y, end_effector_z])
+            self.get_logger().info(f"End effector position in base frame: {end_effector_position}")
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            self.get_logger().error(f"Transform error for end-effector: {e}")
+            end_effector_position = None  # Handle the case where the transform is unavailable
+            
+        if end_effector_position is None:
+            return  # Exit the function if the transform failed
+
+        direction = target_position-end_effector_position
+        yaw = np.arctan2(direction[1],direction[0])
+        
+        state_msg = JointState()
+        state_msg.header = Header()
+        state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
+                        'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'] 
+        state_msg.position = [math.degrees(yaw), 0, 0, 0, 0, 0]
+        self.obj_publisher.publish(state_msg)
+        self.get_logger().info("Joint state published")
+    
+    # def publish_joint_state(self,joint_state_msg):
+    #     # Update the header timestamp
+    #     self.joint_state.header.stamp = self.get_clock().now().to_msg()
+
+    #     # Publish the joint state message
+    #     self.publisher_.publish(self.joint_state)
+    #     self.get_logger().info("Joint state published")
     
 def main(args=None):
     rclpy.init(args=args)
