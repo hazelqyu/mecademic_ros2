@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "cam_detector = camera.cam_detector:main",
         ],
     },
 )

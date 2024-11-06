@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import math
 import tf2_ros
+import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
 
 
@@ -33,6 +34,11 @@ class FaceDetector(Node):
         self.obj_depth = None
         self.obj_width = 0.0
         self.obj_center = []
+        self.obj_pos = None
+        
+        # Initialize TF buffer and listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
 
     def image_callback(self, msg):
         try:
@@ -44,7 +50,7 @@ class FaceDetector(Node):
             
         self.detect_object(frame)
         if self.obj_depth and self.obj_center:
-            self.pos_transform(self.obj_center,self.obj_depth)
+            self.obj_pos = self.pos_transform(self.obj_center,self.obj_depth)
         
         # Show the result
         cv2.imshow("Blue Object Detection with Depth", frame)
@@ -76,8 +82,27 @@ class FaceDetector(Node):
         x = (center[0] - self.cx) * depth / self.focal_length
         y = (center[1] - self.cy) * depth / self.focal_length
         z = depth
+    
+        # Create a PointStamped message in the camera frame
+        point_in_camera_frame = PointStamped()
+        point_in_camera_frame.header.frame_id = "camera_frame"
+        point_in_camera_frame.header.stamp = self.get_clock().now().to_msg()
+        point_in_camera_frame.point.x = x
+        point_in_camera_frame.point.y = y
+        point_in_camera_frame.point.z = z
+        
+        try:
+            # Transform the point to the robot base frame
+            point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", timeout=rclpy.duration.Duration(seconds=1.0))
 
-        return [x, y, z]
+            target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
+            self.get_logger().info(f"Object position in base frame:{point_in_base_frame.point}")
+            # Now we have the object's position in the robot's base frame
+            return target_position
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            self.get_logger().error(f"Transform error: {e}")
+            return None
 
     
 def main(args=None):

@@ -7,7 +7,7 @@ from launch.actions import DeclareLaunchArgument
 def generate_launch_description():
     return LaunchDescription([
         # Define launch arguments for easy adjustment
-        DeclareLaunchArgument('x', default_value='0.0', description='X position of camera relative to robot base'),
+        DeclareLaunchArgument('x', default_value='0.1', description='X position of camera relative to robot base'),
         DeclareLaunchArgument('y', default_value='0.0', description='Y position of camera relative to robot base'),
         DeclareLaunchArgument('z', default_value='0.0', description='Z position of camera relative to robot base'),
         DeclareLaunchArgument('roll', default_value='-1.5708', description='Roll orientation of camera'),

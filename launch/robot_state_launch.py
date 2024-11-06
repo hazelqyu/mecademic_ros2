@@ -22,6 +22,13 @@ def generate_launch_description():
             'use_sim_time',
             default_value='false',
             description='Use simulation (Gazebo) clock if true'),
+        DeclareLaunchArgument('x', default_value='0.1', description='X position of camera relative to robot base'),
+        DeclareLaunchArgument('y', default_value='0.0', description='Y position of camera relative to robot base'),
+        DeclareLaunchArgument('z', default_value='0.0', description='Z position of camera relative to robot base'),
+        DeclareLaunchArgument('roll', default_value='-1.5708', description='Roll orientation of camera'),
+        DeclareLaunchArgument('pitch', default_value='0.0', description='Pitch orientation of camera'),
+        DeclareLaunchArgument('yaw', default_value='-1.5708', description='Yaw orientation of camera'),
+
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -35,5 +42,28 @@ def generate_launch_description():
             executable='test_driver',     
             name='mecademic_robot_driver',
             output='screen'
+        ),
+                # Start the static_transform_publisher with these parameters
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=[
+                LaunchConfiguration('x'),
+                LaunchConfiguration('y'),
+                LaunchConfiguration('z'),
+                LaunchConfiguration('roll'),
+                LaunchConfiguration('pitch'),
+                LaunchConfiguration('yaw'),
+                'world',  # Parent frame ID (robot base)
+                'camera_frame'       # Child frame ID (camera)
+            ]
+        ),
+        # Node to launch RViz2
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', '/path/to/your/config.rviz']  # Optional: specify an RViz config file
         ),
     ])
