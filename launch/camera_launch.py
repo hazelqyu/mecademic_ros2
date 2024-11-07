@@ -19,8 +19,8 @@ def generate_launch_description():
         # Node for cam_detector
         Node(
             package='camera',   # Replace with the actual package name
-            executable='cam_detector',
-            name='cam_detector_node',
+            executable='face_detector',
+            name='face_detector_node',
             output='screen'
         ),
     ])

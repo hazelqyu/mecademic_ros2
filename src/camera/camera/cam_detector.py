@@ -14,8 +14,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 
 
-
-class FaceDetector(Node):
+class ObjDetector(Node):
     def __init__(self):
         super().__init__('face_detector')
         self.subscription = self.create_subscription(
@@ -38,12 +37,12 @@ class FaceDetector(Node):
         self.obj_width = 0.0
         self.obj_center = []
         self.obj_pos = None
+        self.obj_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
         
-        self.obj_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
 
     def image_callback(self, msg):
         try:
@@ -158,7 +157,7 @@ class FaceDetector(Node):
     
 def main(args=None):
     rclpy.init(args=args)
-    detector = FaceDetector()
+    detector = ObjDetector()
     rclpy.spin(detector)
     detector.destroy_node()
     rclpy.shutdown()

@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             "cam_detector = camera.cam_detector:main",
+            "face_detector = camera.face_detector:main",
         ],
     },
 )
