@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
 
 import mecademicpy.robot as mdr
+from meca_controller.robot_controller import RobotController
+from custom_interfaces.msg import RobotStatus
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
@@ -8,15 +10,19 @@ from sensor_msgs.msg import JointState
 import time
 import math
 
+
 class MecademicRobotDriver(Node):
     def __init__(self):
         super().__init__("mecademic_robot_driver")
 
         self.robot = mdr.Robot()
-        self.robot.Connect(address='192.168.0.100', enable_synchronous_mode=True)
+        self.robot.Connect(address='192.168.0.100')
         self.robot.ActivateAndHome()
         # Provide all available real-time feedback messages
         self.robot.SetRealTimeMonitoring('all')
+        # self.robot.SetBlending(80)
+        # self.robot.SetJointVel(25)
+        self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
         print('ready.')
         
@@ -78,11 +84,26 @@ class MecademicRobotDriver(Node):
     def timed_data_logging_callback(self):
         # TODO:Feedback Data logging: to be implemented later
         robot_status = self.robot.GetStatusRobot()
+        
+        status = RobotStatus()
+        status.activation_state = robot_status.activation_state
+        status.brakes_engaged = robot_status.brakes_engaged
+        status.end_of_block_status = robot_status.end_of_block_status
+        status.error_status = robot_status.error_status
+        status.estop_state = robot_status.estopState
+        status.homing_state = robot_status.homing_state
+        status.pause_motion_status = robot_status.pause_motion_status
+        status.pstop2_state = robot_status.pstop2State
+        status.recovery_mode = robot_status.recovery_mode
+        status.simulation_mode = robot_status.simulation_mode
+        
+        # print(status.end_of_block_status)
+        
         self.is_in_error = robot_status.error_status
         if self.is_in_error:
             self.handle_error()
         
-        self.get_logger().info("Publishing joint states")
+        # self.get_logger().info("Publishing joint states")
 
         data = self.robot.GetRobotRtData(synchronous_update=True) 
         joint_state = JointState()
@@ -99,16 +120,29 @@ class MecademicRobotDriver(Node):
         # joint_state.velocity = [data.rt_joint_vel.data[0],data.rt_joint_vel.data[1],data.rt_joint_vel.data[2],
         #                         data.rt_joint_vel.data[3],data.rt_joint_vel.data[4],data.rt_joint_vel.data[5]]
         self.joint_publisher.publish(joint_state)
+    
+    def test_queue(self):
+
+        self.robot.MoveJoints(0, 0, 10, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 20, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 35, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 35, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 40, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 45, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 55, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 60, 0, 0, 0)
+        # self.robot._set_eob(True)
         
         
     def pose_callback(self, pose):
         self.get_logger().info("Received pose message")
 
     def joint_callback(self, joints):
-        self.get_logger().info(f"Received joint message: {joints.position}")
-        # Move robot joints based on received joint positions
-        self.robot.MoveJoints(joints.position[0], joints.position[1], joints.position[2],
-                              joints.position[3], joints.position[4], joints.position[5])
+        joint_positions_deg = [math.degrees(pos) for pos in joints.position]
+        # self.controller.move_joints(joint_positions_deg)
+        self.get_logger().info(f"MoveJoints{joint_positions_deg}")
+        self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
+                              joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
     def set_joint_vel_callback(self, joints_vel):
         self.target_velocity = joints_vel.linear.x * self.scale_factor
@@ -128,14 +162,14 @@ class MecademicRobotDriver(Node):
             self.robot.MoveJointsRel(smoothed_velocity * delta_time, 0.0, 0.0, 0.0, 0.0, 0.0)
         except ValueError as e:
             self.get_logger().error(f"Error in MoveJointsVel: {e}")
-        
+    
 def main(args=None):
     # Initialize ROS 2 Python client library
     rclpy.init(args=args)
 
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
-    
+    # driver.test_queue()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

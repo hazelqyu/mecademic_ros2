@@ -40,7 +40,13 @@ class FaceDetector(Node):
         self.face_center = []
         self.face_pos = None
         self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.5)
-
+        
+        # For threshold
+        self.pre_yaw = None
+        
+        self.target_pos = [0,0,0,0,0,0]
+        # self.timer = self.create_timer(0.1, self.publish_joint_state)
+        
         # Load the pre-trained FER2013 model (mini-XCEPTION trained on FER2013)
         self.model = load_model('/home/andrek/ros2_ws/emotion _detection.keras')
 
@@ -130,27 +136,6 @@ class FaceDetector(Node):
         emotion_index = np.argmax(predictions)  # Find the highest confidence index
         return self.emotion_labels[emotion_index], np.max(predictions)  # Return emotion label and confidence
 
-    # def detect_object(self, image):
-    #     lower_blue = np.array([100, 150, 50])
-    #     upper_blue = np.array([140, 255, 255])
-    #     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    #     mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    #     blue_M = cv2.moments(mask)
-    #     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
-    #     if blue_M["m00"] == 0 or contours is None:
-    #         return None,0.0
-        
-    #     largest_contour = max(contours, key=cv2.contourArea)
-    #     x, y, w, h = cv2.boundingRect(largest_contour)
-    #     cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
-    #     self.obj_depth = (self.object_real_width * self.focal_length) / w
-    #     cv2.putText(image, f"Depth: {self.obj_depth :.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-    #     self.obj_width = w
-    #     blue_cX = int(blue_M["m10"] / blue_M["m00"])
-    #     blue_cY = int(blue_M["m01"] / blue_M["m00"])
-    #     self.obj_center = [blue_cX, blue_cY]
-
     def pos_transform(self,center,depth):
         # Calculate the 3D coordinates relative to the camera
         x = (center[0] - self.cx) * depth / self.focal_length
@@ -207,21 +192,26 @@ class FaceDetector(Node):
         direction = target_position-end_effector_position
         yaw = np.arctan2(direction[1],direction[0])
         
+        movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
+        # Only update target_pos when it's greater than movement threshold
+        movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
+        if movement >= movement_threshold:
+            self.target_pos = [yaw, 0, 0, 0, 0, 0]
+            self.pre_yaw = yaw  
+            self.publish_joint_state()
+
+    
+    def publish_joint_state(self):
         state_msg = JointState()
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
-                        'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'] 
-        state_msg.position = [math.degrees(yaw), 0, 0, 0, 0, 0]
+                        'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint']
+        state_msg.position = self.target_pos
+        state_msg.header.stamp = self.get_clock().now().to_msg()
+
+        # Publish the joint state message
         self.face_publisher.publish(state_msg)
         self.get_logger().info("Joint state published")
-    
-    # def publish_joint_state(self,joint_state_msg):
-    #     # Update the header timestamp
-    #     self.joint_state.header.stamp = self.get_clock().now().to_msg()
-
-    #     # Publish the joint state message
-    #     self.publisher_.publish(self.joint_state)
-    #     self.get_logger().info("Joint state published")
     
 def main(args=None):
     rclpy.init(args=args)
