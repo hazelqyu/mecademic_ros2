@@ -43,6 +43,7 @@ class FaceDetector(Node):
         
         # For threshold
         self.pre_yaw = None
+        self.pre_pitch = None
         
         self.target_pos = [0,0,0,0,0,0]
         # self.timer = self.create_timer(0.1, self.publish_joint_state)
@@ -55,11 +56,35 @@ class FaceDetector(Node):
         self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
+        self.frames = ["camera_frame", "meca_base_link", "meca_axis_5_link"]
+        self.frames_available = {frame:False for frame in self.frames}
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
-        
+        # Create a timer to check for all required frames before proceeding
+        self.check_frames_timer = self.create_timer(0.1, self.check_frames)
+    
+    def check_frames(self):
+        # Check each required frame
+        all_frames_available = True
+        for frame in self.frames:
+            if not self.frames_available[frame]:
+                # Check if the transform is available
+                if self.tf_buffer.can_transform(frame, "meca_base_link", rclpy.time.Time()):
+                    self.frames_available[frame] = True
+                    self.get_logger().info(f"{frame} is now available in tf2.")
+                else:
+                    all_frames_available = False
+
+        # If all frames are available, stop the timer
+        if all_frames_available:
+            self.get_logger().info("All required frames are now available.")
+            self.check_frames_timer.cancel()  # Stop the timer once all frames are available
+
 
     def image_callback(self, msg):
+        if not all(self.frames_available.values()):
+            self.get_logger().info("Waiting for all frames to be available...")
+            return
         try:
             # Convert ROS Image message to OpenCV image
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -155,7 +180,8 @@ class FaceDetector(Node):
             point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
 
             target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
-            self.get_logger().info(f"Object position in base frame:{point_in_base_frame.point}")
+            self.get_logger().info(f"Object position in camera frame:{point_in_camera_frame.point}")
+            self.get_logger().info(f"Object position in robot base frame:{point_in_base_frame.point}")
             # Now we have the object's position in the robot's base frame
             return target_position
 
@@ -180,7 +206,7 @@ class FaceDetector(Node):
 
             # Convert to a NumPy array for easier manipulation
             end_effector_position = np.array([end_effector_x, end_effector_y, end_effector_z])
-            self.get_logger().info(f"End effector position in base frame: {end_effector_position}")
+            # self.get_logger().info(f"End effector position in base frame: {end_effector_position}")
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             self.get_logger().error(f"Transform error for end-effector: {e}")
@@ -191,13 +217,17 @@ class FaceDetector(Node):
 
         direction = target_position-end_effector_position
         yaw = np.arctan2(direction[1],direction[0])
+        pitch = np.arctan2(direction[2],direction[0])
         
         movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
         # Only update target_pos when it's greater than movement threshold
-        movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
-        if movement >= movement_threshold:
-            self.target_pos = [yaw, 0, 0, 0, 0, 0]
-            self.pre_yaw = yaw  
+        h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
+        v_movement = abs(pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
+        
+        if h_movement >= movement_threshold or v_movement>=movement_threshold:
+            self.target_pos = [yaw, 0, -pitch, 0, 0, 0]
+            self.pre_yaw = yaw
+            self.pre_pitch = pitch 
             self.publish_joint_state()
 
     

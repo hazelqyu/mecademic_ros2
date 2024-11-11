@@ -139,10 +139,9 @@ class MecademicRobotDriver(Node):
 
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]
-        # self.controller.move_joints(joint_positions_deg)
-        self.get_logger().info(f"MoveJoints{joint_positions_deg}")
-        self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
-                              joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
+        self.controller.move_joints(joint_positions_deg)
+        # self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
+        #                       joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
     def set_joint_vel_callback(self, joints_vel):
         self.target_velocity = joints_vel.linear.x * self.scale_factor
