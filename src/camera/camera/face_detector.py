@@ -29,10 +29,10 @@ class FaceDetector(Node):
 
         # Calculate focal length using the 78° FoV and 640-pixel width
         horizontal_fov = 78  # Horizontal field of view in degrees
-        image_width = 320  # Resolution width in pixels
+        image_width = 640  # Resolution width in pixels
         self.focal_length = image_width / (2 * math.tan(math.radians(horizontal_fov / 2)))
-        self.cx = 160
-        self.cy = 120
+        self.cx = 320
+        self.cy = 240
         
         # Real-world width of the object in meters
         self.face_real_width = 0.2
@@ -40,11 +40,12 @@ class FaceDetector(Node):
         self.face_width = 0.0
         self.face_center = []
         self.face_pos = None
-        self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.5)
+        self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.3)
         
         # For threshold
         self.pre_yaw = None
         self.pre_pitch = None
+        self.pre_joint2_pitch = None
         
         self.target_pos = [0,0,0,0,0,0]
         # self.timer = self.create_timer(0.1, self.publish_joint_state)
@@ -57,7 +58,7 @@ class FaceDetector(Node):
         self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
-        self.frames = ["camera_frame", "meca_base_link", "meca_axis_1_link", "meca_axis_3_link",  "meca_axis_5_link"]
+        self.frames = ["camera_frame", "meca_base_link", "meca_axis_1_link", "meca_axis_2_link","meca_axis_3_link",  "meca_axis_5_link"]
         self.frames_available = {frame:False for frame in self.frames}
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
@@ -199,8 +200,9 @@ class FaceDetector(Node):
             return  # Exit the function if the transform failed
         
         yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
-        joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0]) # joint 3 will do the pitch
-        joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])
+        joint2_pitch = self.back_forth_movemont(self.face_depth)
+        joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0])-joint2_pitch # joint 3 will do the pitch
+        joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])-joint2_pitch
         
         percentage = 0.5
         
@@ -208,12 +210,26 @@ class FaceDetector(Node):
         # Only update target_pos when it's greater than movement threshold
         h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
         v_movement = abs(joint3_pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
+        # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
         
         if h_movement >= movement_threshold or v_movement>=movement_threshold:
-            self.target_pos = [yaw, 0, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
+            self.target_pos = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
             self.pre_yaw = yaw
             self.pre_pitch = joint3_pitch 
             self.publish_joint_state()
+    
+    def back_forth_movemont(self,depth) -> float:
+        joint2_pitch = 0
+        if depth <0.45 and depth> 0.3:
+            # joint2_pitch = 1.0472*((0.5-depth)/(0.5-0.2))
+            joint2_pitch = 0.7854
+        elif depth <=0.3:
+            joint2_pitch = 1.0472
+        # elif depth >0.8:
+        #     # joint2_pitch = -1.0472*((depth-0.7)/(1.0-0.7))
+        #     joint2_pitch = -0.7854
+        return joint2_pitch
+        
 
     def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
         try:

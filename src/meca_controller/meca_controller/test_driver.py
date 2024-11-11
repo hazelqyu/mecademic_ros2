@@ -123,14 +123,7 @@ class MecademicRobotDriver(Node):
     
     def test_queue(self):
 
-        self.robot.MoveJoints(0, 0, 10, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 20, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 35, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 35, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 40, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 45, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 55, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 60, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 0, 0, 0, 0)
         # self.robot._set_eob(True)
         
         
@@ -168,7 +161,7 @@ def main(args=None):
 
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
-    # driver.test_queue()
+    driver.test_queue()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

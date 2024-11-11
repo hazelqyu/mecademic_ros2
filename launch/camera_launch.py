@@ -13,7 +13,11 @@ def generate_launch_description():
             executable='cam2image',
             name='cam2image_node',
             output='screen',
-            parameters=[{'frequency': 10.0}],  # Adjust frequency if needed
+            parameters=[
+                {'frequency': 10.0},    # Adjust frequency if needed
+                {'width': 640},         
+                {'height': 480}         
+            ],
         ),
         
         # Node for cam_detector
