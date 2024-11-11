@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rclpy
+from typing import Optional
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge,CvBridgeError
@@ -56,7 +57,7 @@ class FaceDetector(Node):
         self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
-        self.frames = ["camera_frame", "meca_base_link", "meca_axis_5_link"]
+        self.frames = ["camera_frame", "meca_base_link", "meca_axis_1_link", "meca_axis_3_link",  "meca_axis_5_link"]
         self.frames_available = {frame:False for frame in self.frames}
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
@@ -190,52 +191,56 @@ class FaceDetector(Node):
             return None
 
     def lookat(self,target_position):
-        try:
-            # Lookup the transform from "meca_axis_5_link" (end effector) to "meca_base_link" (base frame)
-            end_effector_in_base_frame = self.tf_buffer.lookup_transform(
-                "meca_base_link",         # Target frame
-                "meca_axis_5_link",       # Source frame (end effector)
-                rclpy.time.Time(),        # Time (use the latest available transform)
-                timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
-            )
-            
-            # Extract the translation component of the transform (end-effector position in the base frame)
-            end_effector_x = end_effector_in_base_frame.transform.translation.x
-            end_effector_y = end_effector_in_base_frame.transform.translation.y
-            end_effector_z = end_effector_in_base_frame.transform.translation.z
 
-            # Convert to a NumPy array for easier manipulation
-            end_effector_position = np.array([end_effector_x, end_effector_y, end_effector_z])
-            # self.get_logger().info(f"End effector position in base frame: {end_effector_position}")
-
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            self.get_logger().error(f"Transform error for end-effector: {e}")
-            end_effector_position = None  # Handle the case where the transform is unavailable
-            
-        if end_effector_position is None:
+        joint1_direction = self.compute_direction("meca_axis_1_link",target_position)
+        joint3_direction = self.compute_direction("meca_axis_3_link",target_position)
+        joint5_direction = self.compute_direction("meca_axis_5_link",target_position)
+        if joint1_direction is None or joint3_direction is None or joint5_direction is None:
             return  # Exit the function if the transform failed
-
-        direction = target_position-end_effector_position
-        yaw = np.arctan2(direction[1],direction[0])
-        pitch = np.arctan2(direction[2],direction[0])
+        
+        yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
+        joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0]) # joint 3 will do the pitch
+        joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])
+        
+        percentage = 0.5
         
         movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
         # Only update target_pos when it's greater than movement threshold
         h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
-        v_movement = abs(pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
+        v_movement = abs(joint3_pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
         
         if h_movement >= movement_threshold or v_movement>=movement_threshold:
-            self.target_pos = [yaw, 0, -pitch, 0, 0, 0]
+            self.target_pos = [yaw, 0, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
             self.pre_yaw = yaw
-            self.pre_pitch = pitch 
+            self.pre_pitch = joint3_pitch 
             self.publish_joint_state()
 
+    def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
+        try:
+            link_frame = self.tf_buffer.lookup_transform(
+                "meca_base_link",         # Target frame
+                link_name,       # Source frame
+                rclpy.time.Time(),        # Time (use the latest available transform)
+                timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
+            )
+            
+            link_position = np.array([link_frame.transform.translation.x, link_frame.transform.translation.y, link_frame.transform.translation.z])
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            self.get_logger().error(f"Transform error for joints: {e}")
+            link_position = None
+        
+        if link_position is None:
+            return None
+        
+        direction = target_position-link_position
+        return direction
     
     def publish_joint_state(self):
         state_msg = JointState()
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
                         'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint']
+        print(self.target_pos)
         state_msg.position = self.target_pos
         state_msg.header.stamp = self.get_clock().now().to_msg()
 
