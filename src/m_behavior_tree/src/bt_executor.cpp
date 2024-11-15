@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     RegisterNodes(factory);
 
     // Load the tree from the XML file
-    auto tree = factory.createTreeFromFile("config/my_behavior_tree.xml");
+    auto tree = factory.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
 
     // Execute the tree until it completes
     tree.tickWhileRunning();

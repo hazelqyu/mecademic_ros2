@@ -1,8 +1,8 @@
-<root main_tree_to_execute="MainTree">
+<root BTCPP_format="4">
     <BehaviorTree ID="MainTree">
         <Sequence>
-            <Action ID="TrackFace"/>
-            <Action ID="Idle"/>
+            <Action ID="TrackFace"  name="track_face"/>
+            <Action ID="Idle"   name="idle"/>
         </Sequence>
     </BehaviorTree>
 </root>
