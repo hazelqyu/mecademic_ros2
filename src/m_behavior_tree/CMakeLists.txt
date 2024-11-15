@@ -8,18 +8,21 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
+find_package(behaviortree_ros2 REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 include_directories(include)
 
-# Create library for behavior tree nodes
+# Add library for custom behavior tree nodes
 add_library(bt_nodes src/bt_nodes.cpp)
-ament_target_dependencies(bt_nodes behaviortree_cpp rclcpp)  # Link dependencies to bt_nodes library
+ament_target_dependencies(bt_nodes behaviortree_cpp behaviortree_ros2 rclcpp std_msgs)
 
-# Create executable for behavior tree executor
+# Add executable for bt_executor and link it with bt_nodes
 add_executable(bt_executor src/bt_executor.cpp)
-target_link_libraries(bt_executor bt_nodes)  # Link custom library
-ament_target_dependencies(bt_executor behaviortree_cpp rclcpp)  # Link dependencies
+target_link_libraries(bt_executor bt_nodes)
+ament_target_dependencies(bt_executor behaviortree_cpp behaviortree_ros2 rclcpp std_msgs)
 
 # Install targets
 install(TARGETS

@@ -1,8 +1,11 @@
 <root BTCPP_format="4">
     <BehaviorTree ID="MainTree">
-        <Sequence>
-            <Action ID="TrackFace"  name="track_face"/>
-            <Action ID="Idle"   name="idle"/>
-        </Sequence>
+        <Fallback name="root_selector">
+            <Sequence>
+                <IsDetectedCondition name="is_detected_condition"/>
+                <TrackFace name="track_face"/>
+            </Sequence>
+            <Idle name="idle"/>
+        </Fallback>
     </BehaviorTree>
 </root>
