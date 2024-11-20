@@ -11,11 +11,10 @@ int main(int argc, char **argv) {
     // Set up ROS node parameters
     BT::RosNodeParams params;
     params.nh = nh;
-    params.default_port_value = "is_detected";  // Default topic name
 
     // Register the IsDetectedCondition node with parameters
     factory.registerNodeType<IsDetectedCondition>("IsDetectedCondition", params);
-    factory.registerNodeType<TrackFace>("TrackFace");
+    factory.registerNodeType<TrackFace>("TrackFace", params);
     factory.registerNodeType<Idle>("Idle");
 
     // Register custom nodes
@@ -27,7 +26,7 @@ int main(int argc, char **argv) {
     // Execute the tree in a loop
     while (rclcpp::ok()) {
         tree.tickWhileRunning();
-        rclcpp::sleep_for(std::chrono::milliseconds(100));  // Adjust interval as needed
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
     }
 
     // rclcpp::shutdown();

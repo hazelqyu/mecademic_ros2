@@ -4,14 +4,17 @@
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/condition_node.h"
 #include "behaviortree_ros2/bt_topic_sub_node.hpp"
+#include "behaviortree_ros2/bt_topic_pub_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 // Custom Action Node: TrackFace
-class TrackFace : public BT::SyncActionNode {
+class TrackFace : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
 public:
-    TrackFace(const std::string& name);
-    BT::NodeStatus tick() override;
+    TrackFace(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    static BT::PortsList providedPorts();
+protected:
+    bool setMessage(std_msgs::msg::Bool& msg) override;
 };
 
 // Custom Action Node: Idle

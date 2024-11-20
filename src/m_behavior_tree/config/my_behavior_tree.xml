@@ -2,8 +2,8 @@
     <BehaviorTree ID="MainTree">
         <Fallback name="root_selector">
             <Sequence>
-                <IsDetectedCondition name="is_detected_condition"/>
-                <TrackFace name="track_face"/>
+                <IsDetectedCondition name="is_detected_condition" topic_name="/is_detected"/>
+                <TrackFace name="track_face" topic_name="/start_tracking"/>
             </Sequence>
             <Idle name="idle"/>
         </Fallback>
