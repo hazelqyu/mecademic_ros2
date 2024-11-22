@@ -27,7 +27,7 @@ def main(args=None):
     try:
         rclpy.spin(tracker) 
     except KeyboardInterrupt:
-        pass  # Handle shutdown gracefully on Ctrl+C
+        pass
     finally:
         tracker.destroy_node()
         rclpy.shutdown()

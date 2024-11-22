@@ -17,12 +17,22 @@ protected:
     bool setMessage(std_msgs::msg::Bool& msg) override;
 };
 
-// Custom Action Node: Idle
-class Idle : public BT::SyncActionNode {
+
+class Idle : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
 public:
-    Idle(const std::string& name);
-    BT::NodeStatus tick() override;
+    Idle(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    static BT::PortsList providedPorts();
+protected:
+    bool setMessage(std_msgs::msg::Bool& msg) override;
 };
+
+
+// Custom Action Node: Idle
+// class Idle : public BT::SyncActionNode {
+// public:
+//     Idle(const std::string& name);
+//     BT::NodeStatus tick() override;
+// };
 
 // Custom Condition Node: IsDetectedCondition
 class IsDetectedCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {

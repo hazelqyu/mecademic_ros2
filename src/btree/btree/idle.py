@@ -1,49 +1,84 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from custom_interfaces.msg import SingleJointState
-from std_msgs.msg import Header
+from rclpy.duration import Duration
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Header, Bool,Float64MultiArray
 import math
 import time
+# from meca_controller.test_driver import MecademicRobotDriver
 
 class IdleNode(Node):
     def __init__(self):
         super().__init__('idle_node')
-        self.motion_publisher = self.create_publisher(SingleJointState, '/mecademic_single_joint', 10)
+        # self.robot = MecademicRobotDriver().robot
+        self.btree_sub = self.create_subscription(Bool, '/start_idling', self.start_idling_callback, 10)
+        self.command_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
 
-        # Set parameters for sine wave
-        self.amplitude = 0.1  # Amplitude in radius
-        self.frequency = 0.5  # Frequency in Hz
-        self.start_time = time.time()
-        self.timer = self.create_timer(1, self.publish_motion)
-        self.joint_4_position = self.amplitude
-                
-    def publish_motion(self):
-        t = time.time()-self.start_time
-        self.joint_4_position = -self.joint_4_position
-        # joint_4_position = self.amplitude * math.sin(2*math.pi*self.frequency*t)
-        state_msg = SingleJointState()
+        # self.timer = self.create_timer(0.05,self.publish_command)
+        self.timer = None
+        self.timeout_timer = None
+        self.last_msg_time = None
+
+    def start_idling_callback(self, msg):
+        """Handles incoming /start_idling messages."""
+        self.last_msg_time = self.get_clock().now()
+
+        # Start publishing commands if not already running
+        if not self.timer:
+            self.get_logger().info("Starting idle motion.")
+            self.timer = self.create_timer(0.05, self.publish_command)
+
+        # Start or reset the timeout checker
+        if not self.timeout_timer:
+            self.timeout_timer = self.create_timer(0.05, self.check_timeout)
+
+    def check_timeout(self):
+        """Checks if no message has been received recently and stops idling if necessary."""
+        if not self.last_msg_time:
+            return  # Sanity check
+
+        time_now = self.get_clock().now()
+        if (time_now - self.last_msg_time) > Duration(seconds=0.1):
+            self.get_logger().info("Stopping idle motion due to timeout.")
+            self.stop_idling()
+
+    def stop_idling(self):
+        """Stops the idle motion and cancels all timers."""
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        if self.timeout_timer:
+            self.timeout_timer.cancel()
+            self.timeout_timer = None
+
+    def publish_command(self):
+        time_now = self.get_clock().now().nanoseconds * 1e-9
+        sine_value = 0.1 * math.sin(2 * math.pi * 0.5 * time_now)
+
+        self.get_logger().info(f"sine_value: {sine_value}")
+
+        state_msg = JointState()
         state_msg.header = Header()
-        state_msg.name = "meca_axis_4_joint"
-        state_msg.idx = 3
-        state_msg.position = self.joint_4_position
+        state_msg.name = [
+            'meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint',
+            'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'
+        ]
+        state_msg.position = [0, sine_value, 0, 0, -sine_value, 0]
         state_msg.header.stamp = self.get_clock().now().to_msg()
-
-        # Publish the joint state message
-        self.motion_publisher.publish(state_msg)
-        self.get_logger().info("Idle")
+        self.command_publisher.publish(state_msg)
         
 def main(args=None):
     rclpy.init(args=args)
     idle = IdleNode()
+    # idle.test_wave()
     try:
-        rclpy.spin(idle)  # Keep the node alive and spinning
+        rclpy.spin(idle)
     except KeyboardInterrupt:
-        pass  # Handle shutdown gracefully on Ctrl+C
+        pass
     finally:
         idle.destroy_node()
         rclpy.shutdown()
-
 
 
 if __name__ == '__main__':

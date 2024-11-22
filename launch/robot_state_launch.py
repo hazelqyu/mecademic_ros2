@@ -66,4 +66,11 @@ def generate_launch_description():
             output='screen',
             arguments=['-d', '/path/to/your/config.rviz']  # Optional: specify an RViz config file
         ),
+        
+        # Node(
+        #     package='btree',
+        #     executable='idle',
+        #     name='idle_node',
+        #     output='screen'
+        # ),
     ])

@@ -17,4 +17,10 @@ def generate_launch_description():
             name='track_face_node',
             output='screen'
         ),
+        Node(
+            package='btree',
+            executable='idle',
+            name='idle_node',
+            output='screen'
+        ),
     ])

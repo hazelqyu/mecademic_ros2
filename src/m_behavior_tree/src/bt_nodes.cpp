@@ -17,13 +17,29 @@ bool TrackFace::setMessage(std_msgs::msg::Bool& msg) {
     return true;  // Return true to indicate successful message setup
 }
 
-// Idle Action Node
-Idle::Idle(const std::string& name) : BT::SyncActionNode(name, {}) {}
+Idle::Idle(
+    const std::string& name,
+    const BT::NodeConfig& config,
+    const BT::RosNodeParams& params
+) : BT::RosTopicPubNode<std_msgs::msg::Bool>(name, config, params) {}
 
-BT::NodeStatus Idle::tick() {
-    RCLCPP_INFO(rclcpp::get_logger("Idle"), "Idling...");
-    return BT::NodeStatus::SUCCESS;
+BT::PortsList Idle::providedPorts() {
+    // Default ports for topic name; add more if needed
+    return BT::RosTopicPubNode<std_msgs::msg::Bool>::providedBasicPorts({});
 }
+
+bool Idle::setMessage(std_msgs::msg::Bool& msg) {
+    msg.data = true;  // Always publish a "start tracking" signal
+    RCLCPP_INFO(rclcpp::get_logger("Idle"), "Publishing Idling signal.");
+    return true;  // Return true to indicate successful message setup
+}
+
+// Idle::Idle(const std::string& name) : BT::SyncActionNode(name, {}) {}
+
+// BT::NodeStatus Idle::tick() {
+//     RCLCPP_INFO(rclcpp::get_logger("Idle"), "Idling...");
+//     return BT::NodeStatus::SUCCESS;
+// }
 
 // IsDetectedCondition Node
 IsDetectedCondition::IsDetectedCondition(

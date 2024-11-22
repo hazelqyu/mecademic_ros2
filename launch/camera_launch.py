@@ -27,10 +27,5 @@ def generate_launch_description():
             name='face_detector_node',
             output='screen'
         ),
-        # Node(
-        #     package='btree',
-        #     executable='idle',
-        #     name='idle_node',
-        #     output='screen'
-        # ),
+
     ])

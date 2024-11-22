@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     // Register the IsDetectedCondition node with parameters
     factory.registerNodeType<IsDetectedCondition>("IsDetectedCondition", params);
     factory.registerNodeType<TrackFace>("TrackFace", params);
-    factory.registerNodeType<Idle>("Idle");
+    factory.registerNodeType<Idle>("Idle",params);
 
     // Register custom nodes
     //RegisterNodes(factory);

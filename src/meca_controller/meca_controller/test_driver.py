@@ -7,10 +7,24 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64MultiArray
 import time
 import math
 
 
+def singleton(cls):
+    """A decorator to make a class a singleton."""
+    instances = {}  # Dictionary to store the single instance
+
+    def get_instance(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return get_instance
+
+
+@singleton
 class MecademicRobotDriver(Node):
     def __init__(self):
         super().__init__("mecademic_robot_driver")
@@ -41,6 +55,7 @@ class MecademicRobotDriver(Node):
         
         # Set up subscriber to recieve ROS command
         self.single_joint_state_subscriber = self.create_subscription(SingleJointState, "/mecademic_single_joint", self.update_single_joint_state,10)
+        self.joint_subscriber = self.create_subscription(Float64MultiArray, "/mecademic_robot_joint_array", self.joint_array_callback, 10)
         self.joint_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint", self.joint_callback, 10)
         self.joint_rel_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint_rel", self.joint_rel_callback,10)
         self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
@@ -151,11 +166,17 @@ class MecademicRobotDriver(Node):
         joint_positions_deg = [math.degrees(pos) for pos in self.joint_desired_state]
         self.controller.move_joints(joint_positions_deg)
 
+    def joint_array_callback(self,array):
+        joint_positions_deg = [math.degrees(pos) for pos in array.data]
+        
+        self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
+                              joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
+    
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]
-        self.controller.move_joints(joint_positions_deg)
-        # self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
-        #                       joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
+        # self.controller.move_joints(joint_positions_deg)
+        self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
+                              joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
     def joint_rel_callback(self,joints_rel):
         # comes in degrees for now
@@ -181,6 +202,14 @@ class MecademicRobotDriver(Node):
         except ValueError as e:
             self.get_logger().error(f"Error in MoveJointsVel: {e}")
     
+    def test_wave(self):
+        while rclpy.ok():
+            time_now = self.get_clock().now().nanoseconds * 1e-9
+            sine_value = 0.1*math.sin(2*math.pi*0.5*time_now)
+            print("sine_value:",sine_value)
+            self.robot.MoveJoints(0,math.degrees(sine_value),0,0,-math.degrees(sine_value),0)
+            time.sleep(0.08)
+    
 def main(args=None):
     # Initialize ROS 2 Python client library
     rclpy.init(args=args)
@@ -188,6 +217,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.test_queue()
+    # driver.test_wave()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
