@@ -12,9 +12,8 @@ BT::PortsList TrackFace::providedPorts() {
 }
 
 bool TrackFace::setMessage(std_msgs::msg::Bool& msg) {
-    // This node only runs when the parent tree determines it should start tracking
     msg.data = true;  // Always publish a "start tracking" signal
-    RCLCPP_INFO(rclcpp::get_logger("TrackFace"), "Publishing start tracking signal.");
+    RCLCPP_INFO(rclcpp::get_logger("TrackFace"), "Publishing tracking signal.");
     return true;  // Return true to indicate successful message setup
 }
 

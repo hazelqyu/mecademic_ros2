@@ -2,7 +2,7 @@
 
 import mecademicpy.robot as mdr
 from meca_controller.robot_controller import RobotController
-from custom_interfaces.msg import RobotStatus
+from custom_interfaces.msg import RobotStatus, SingleJointState
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
@@ -17,11 +17,12 @@ class MecademicRobotDriver(Node):
 
         self.robot = mdr.Robot()
         self.robot.Connect(address='192.168.0.100')
+        self.robot.ResumeMotion()
         self.robot.ActivateAndHome()
         # Provide all available real-time feedback messages
         self.robot.SetRealTimeMonitoring('all')
         # self.robot.SetBlending(80)
-        # self.robot.SetJointVel(25)
+        self.robot.SetJointVel(25)
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
         print('ready.')
@@ -32,12 +33,16 @@ class MecademicRobotDriver(Node):
         DATA_LOGGING_TIME_INTERVAL = 0.1 # seconds TODO ADJUST THIS
         self.create_timer(DATA_LOGGING_TIME_INTERVAL, self.timed_data_logging_callback)
         
-        # TODO: create publisher for feedback data
-        self.joint_publisher = self.create_publisher(JointState, "/joint_states", 10)
+        # Publisher feedback
+        self.feedback_publisher = self.create_publisher(JointState, "/joint_states", 10)
+        
+        # Timer to update command
+        # self.create_timer(0.05,self.send_command)
         
         # Set up subscriber to recieve ROS command
-        self.pose_subscriber = self.create_subscription(Pose, "/mecademic_robot_pose", self.pose_callback, 10)
+        self.single_joint_state_subscriber = self.create_subscription(SingleJointState, "/mecademic_single_joint", self.update_single_joint_state,10)
         self.joint_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint", self.joint_callback, 10)
+        self.joint_rel_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint_rel", self.joint_rel_callback,10)
         self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
         
         # TODO: Set up services
@@ -55,6 +60,10 @@ class MecademicRobotDriver(Node):
         # Set up a timer to mimic the Unity update loop
         self.update_rate = 0.02  # 50 Hz, similar to Unity frame rate
         self.create_timer(self.update_rate, self.update_movement)
+        
+        self.joint_desired_state=[0,0,0,0,0,0] #radius
+        self.joint_current_state = [0,0,0,0,0,0] #radius
+
         
     def stop(self):
         try:
@@ -117,24 +126,41 @@ class MecademicRobotDriver(Node):
             math.radians(data.rt_joint_pos.data[4]),
             math.radians(data.rt_joint_pos.data[5])
         ]
+        self.joint_current_state = joint_state.position
         # joint_state.velocity = [data.rt_joint_vel.data[0],data.rt_joint_vel.data[1],data.rt_joint_vel.data[2],
         #                         data.rt_joint_vel.data[3],data.rt_joint_vel.data[4],data.rt_joint_vel.data[5]]
-        self.joint_publisher.publish(joint_state)
+        self.feedback_publisher.publish(joint_state)
+    
+    # Callback function to update a single joint state
+    def update_single_joint_state(self,msg): 
+        self.joint_desired_state[msg.idx] = msg.position
+        # TODO: relative update
     
     def test_queue(self):
-
-        self.robot.MoveJoints(0, 0, 0, 0, 0, 0)
+        self.robot.WaitHomed()
+        self.robot.MoveJoints(0,0,0,0,0,0)
+        # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
+        # self.robot.MoveLin(200, 100, 300, 0, 90, 0)
+        # self.robot.MoveLin(200, 100, 100, 0, 90, 0)
+        # self.robot.MoveLin(200, -100, 100, 0, 90, 0)
+        # self.robot.MoveLin(200, -100, 300, 0, 90, 0)
+        # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
         # self.robot._set_eob(True)
         
-        
-    def pose_callback(self, pose):
-        self.get_logger().info("Received pose message")
+    def send_command(self):
+        joint_positions_deg = [math.degrees(pos) for pos in self.joint_desired_state]
+        self.controller.move_joints(joint_positions_deg)
 
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]
         self.controller.move_joints(joint_positions_deg)
         # self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
         #                       joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
+    
+    def joint_rel_callback(self,joints_rel):
+        # comes in degrees for now
+        self.robot.MoveJointsRel(joints_rel.position[0],joints_rel.position[1],joints_rel.position[2],
+                                 joints_rel.position[3],joints_rel.position[4],joints_rel.position[5],)
     
     def set_joint_vel_callback(self, joints_vel):
         self.target_velocity = joints_vel.linear.x * self.scale_factor

@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotionPlan.msg"
   "msg/RobotStatus.msg"
   "msg/GripperStatus.msg"
+  "msg/SingleJointState.msg"
   "srv/GetMotionPlan.srv"
   "srv/VisualizeMotionPlan.srv"
   "srv/GoToPose.srv"

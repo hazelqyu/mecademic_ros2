@@ -9,5 +9,12 @@ def generate_launch_description():
             name='bt_executor',
             output='screen',
             parameters=[]
-        )
+        ),
+        # List all the tree nodes
+        Node(
+            package='btree',
+            executable='track_face',
+            name='track_face_node',
+            output='screen'
+        ),
     ])

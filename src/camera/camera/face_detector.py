@@ -3,7 +3,7 @@
 import rclpy
 from typing import Optional
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image,JointState
 from cv_bridge import CvBridge,CvBridgeError
 import cv2
 import numpy as np
@@ -13,7 +13,7 @@ import math
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
-from sensor_msgs.msg import JointState
+from custom_interfaces.msg import SingleJointState
 from std_msgs.msg import Header
 
 
@@ -56,6 +56,7 @@ class FaceDetector(Node):
         # Define the emotion labels for FER2013 (7 classes)
         self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
         self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
+        self.single_joint_publisher = self.create_publisher(SingleJointState, '/mecademic_single_joint',10)
         
         # Initialize TF buffer and listener
         self.frames = ["camera_frame", "meca_base_link", "meca_axis_1_link", "meca_axis_2_link","meca_axis_3_link",  "meca_axis_5_link"]
@@ -217,6 +218,13 @@ class FaceDetector(Node):
             self.pre_yaw = yaw
             self.pre_pitch = joint3_pitch 
             self.publish_joint_state()
+            
+            # self.publish_single_joint_state("meca_axis_1_joint",0)
+            # self.publish_single_joint_state("meca_axis_2_joint",1)
+            # self.publish_single_joint_state("meca_axis_3_joint",2)
+            # self.publish_single_joint_state("meca_axis_3_joint",2)
+            # self.publish_single_joint_state("meca_axis_4_joint",3)
+            # self.publish_single_joint_state("meca_axis_5_joint",4)
     
     def back_forth_movemont(self,depth) -> float:
         joint2_pitch = 0
@@ -263,6 +271,22 @@ class FaceDetector(Node):
         # Publish the joint state message
         self.face_publisher.publish(state_msg)
         self.get_logger().info("Joint state published")
+    
+    
+    def publish_single_joint_state(self,joint_name,joint_index):
+        
+        # Publish four messages at a time
+        joint_msg = SingleJointState()
+        joint_msg.header = Header()
+        joint_msg.name = joint_name
+        joint_msg.idx = joint_index
+        joint_msg.position = float(self.target_pos[joint_index])
+        joint_msg.header.stamp = self.get_clock().now().to_msg()
+        
+        self.single_joint_publisher.publish(joint_msg)
+        self.get_logger().info("Single Joint State Published")
+        
+    
     
 def main(args=None):
     rclpy.init(args=args)
