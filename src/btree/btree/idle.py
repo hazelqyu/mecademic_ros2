@@ -64,7 +64,7 @@ class IdleNode(Node):
             'meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint',
             'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'
         ]
-        state_msg.position = [0, sine_value, 0, 0, -sine_value, 0]
+        state_msg.position = [0, sine_value, 0, 0, -1.5*sine_value, 0]
         state_msg.header.stamp = self.get_clock().now().to_msg()
         self.command_publisher.publish(state_msg)
         
