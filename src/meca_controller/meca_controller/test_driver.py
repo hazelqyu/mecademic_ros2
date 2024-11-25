@@ -3,6 +3,7 @@
 import mecademicpy.robot as mdr
 from meca_controller.robot_controller import RobotController
 from custom_interfaces.msg import RobotStatus, SingleJointState
+from custom_interfaces.srv import ClearMotion
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
@@ -61,7 +62,7 @@ class MecademicRobotDriver(Node):
         self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
         
         # TODO: change this to a service
-        self.state_change_sub = self.create_subscription(Bool,"/state_change", self.state_change,10)
+        self.state_change_srv = self.create_service(ClearMotion, "/state_change", self.state_change)
         
         # Keep track of error state:
         self.is_in_error = False
@@ -173,9 +174,17 @@ class MecademicRobotDriver(Node):
         self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
                               joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
-    def state_change(self,msg):
-        self.robot.ClearMotion()
-        self.robot.WaitMotionCleared()
+    def state_change(self,request, response):
+        try:
+            self.robot.ClearMotion()
+            self.robot.WaitMotionCleared()
+            response.success = True
+            self.get_logger().info("Motion buffer cleared")
+        except Exception as e:
+            response.success = False
+            self.get_logger().error(f"Failed to clear motion buffer: {e}")
+        return response
+
     
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]

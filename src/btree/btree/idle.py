@@ -32,6 +32,7 @@ class IdleNode(Node):
         # Start or reset the timeout checker
         if not self.timeout_timer:
             self.timeout_timer = self.create_timer(0.05, self.check_timeout)
+            pass
 
     def check_timeout(self):
         """Checks if no message has been received recently and stops idling if necessary."""
@@ -39,7 +40,7 @@ class IdleNode(Node):
             return  # Sanity check
 
         time_now = self.get_clock().now()
-        if (time_now - self.last_msg_time) > Duration(seconds=0.1):
+        if (time_now - self.last_msg_time) > Duration(seconds=2):
             self.get_logger().info("Stopping idle motion due to timeout.")
             self.stop_idling()
 
