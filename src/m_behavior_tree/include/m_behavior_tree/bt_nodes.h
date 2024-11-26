@@ -7,6 +7,8 @@
 #include "behaviortree_ros2/bt_topic_pub_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "m_behavior_tree/service_helpers.h"
+
 
 // Custom Action Node: TrackFace
 // class TrackFace : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
@@ -51,11 +53,11 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
 };
 
-class Yawn : public BT::StatefulActionNode{
+class Yawn : public BT::StatefulActionNode {
 public:
     Yawn(const std::string &name, const BT::NodeConfig &config);
 
-    //StatefulActionNode methods
+    // StatefulActionNode methods
     BT::NodeStatus onStart() override;
     BT::NodeStatus onRunning() override;
     void onHalted() override;
@@ -65,7 +67,8 @@ public:
 
 private:
     rclcpp::Node::SharedPtr ros_node_;
-    // rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
+    MotionServiceClient motion_client_;
+    bool motion_started_;
 };
 
 

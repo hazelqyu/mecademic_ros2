@@ -191,6 +191,7 @@ class MecademicRobotDriver(Node):
             self.get_logger().info()(f"Executing motion:{request.motion_name}")
             if request.motion_name == "yawn":
                 self.test_yawn()
+                self.robot.WaitIdle()
                 response.success = True
             else:
                 self.get_logger().warn(f"Unknown motion: {request.motion_name}")

@@ -1,5 +1,7 @@
-#include "m_behavior_tree/bt_nodes.h"  // Ensure this is the correct path
+#include "m_behavior_tree/bt_nodes.h"
+#include "m_behavior_tree/service_helpers.h" 
 #include "custom_interfaces/srv/clear_motion.hpp"
+#include "custom_interfaces/srv/execute_motion.hpp"
 #include <chrono>
 
 bool callStateChangeService(rclcpp::Node::SharedPtr node);
@@ -97,49 +99,48 @@ void Idle::onHalted(){
     RCLCPP_INFO(ros_node_->get_logger(), "Idle node halted. Published False to /start_idling.");
 }
 
+
 //Yawn Node
+
 Yawn::Yawn(const std::string &name, const BT::NodeConfig &config)
-    : BT::StatefulActionNode(name, config){
-
-    ros_node_ = rclcpp::Node::make_shared("yawn_tree_node");
-    // publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_yawning", 10);
-
+    : BT::StatefulActionNode(name, config),
+      ros_node_(rclcpp::Node::make_shared("yawn_tree_node")),
+      motion_client_(ros_node_, "/execute_motion"),
+      motion_started_(false) {
     RCLCPP_INFO(ros_node_->get_logger(), "Yawn tree node initialized.");
 }
 
-BT::PortsList Yawn::providedPorts(){
+// Define the ports (empty in this case)
+BT::PortsList Yawn::providedPorts() {
     return {};
 }
 
-BT::NodeStatus Yawn::onStart(){
-    // if (!callStateChangeService(ros_node_)) {
-    //     RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Yawn node.");
-    //     return BT::NodeStatus::FAILURE;
-    // }
-    // while (publisher_->get_subscription_count() == 0) {
-    //     RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_yawning...");
-    //     rclcpp::sleep_for(std::chrono::milliseconds(100));
-    // }
-    // auto msg = std_msgs::msg::Bool();
-    // msg.data = true;
-    // publisher_->publish(msg);
-
-    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node started. Published True to /start_yawning.");
+BT::NodeStatus Yawn::onStart() {
+    // Start the motion service if it hasn't been started yet
+    if (!motion_started_) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Calling ExecuteMotion service for Yawn...");
+        motion_client_.sendRequest("yawn");  // Send request to the service
+        motion_started_ = true;             // Mark motion as started
+    }
     return BT::NodeStatus::RUNNING;
 }
 
-BT::NodeStatus Yawn::onRunning(){
-    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node running.");
-    return BT::NodeStatus::RUNNING;
+BT::NodeStatus Yawn::onRunning() {
+    // Check if the service is complete
+    if (motion_client_.isServiceComplete()) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Yawn motion completed successfully.");
+        return BT::NodeStatus::SUCCESS; // Mark the node as complete
+    }
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn motion still running...");
+    return BT::NodeStatus::RUNNING; // Keep running while the service is not complete
 }
 
-void Yawn::onHalted(){
-    // auto msg = std_msgs::msg::Bool();
-    // msg.data = false;
-    // publisher_->publish(msg);
-
-    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node halted. Published False to /start_yawning.");
+void Yawn::onHalted() {
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node halted.");
+    motion_started_ = false; // Reset the motion_started_ flag
 }
+
 
 //IsDetectedCondition Node
 
@@ -218,4 +219,3 @@ bool callStateChangeService(rclcpp::Node::SharedPtr node) {
         return false;
     }
 }
-
