@@ -3,7 +3,13 @@
         <ReactiveFallback name="root_selector">
             <ReactiveSequence>
                 <IsDetectedCondition name="is_detected_condition" topic_name="/is_detected"/>
-                <TrackFace name="track_face"/>
+                <ReactiveFallback name="behavior_selector">
+                    <Sequence>
+                        <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
+                        <Yawn name="yawn"/>
+                    </Sequence>
+                    <TrackFace name="track_face"/>
+                </ReactiveFallback>
             </ReactiveSequence>
             <Idle name="idle"/>
         </ReactiveFallback>

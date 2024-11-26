@@ -19,6 +19,10 @@ BT::PortsList TrackFace::providedPorts(){
 }
 
 BT::NodeStatus TrackFace::onStart(){
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in TrackFace node.");
+        return BT::NodeStatus::FAILURE;
+    }
     while (publisher_->get_subscription_count() == 0) {
         RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_tracking...");
         rclcpp::sleep_for(std::chrono::milliseconds(100));
@@ -93,7 +97,49 @@ void Idle::onHalted(){
     RCLCPP_INFO(ros_node_->get_logger(), "Idle node halted. Published False to /start_idling.");
 }
 
+//Yawn Node
+Yawn::Yawn(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config){
 
+    ros_node_ = rclcpp::Node::make_shared("yawn_tree_node");
+    // publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_yawning", 10);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn tree node initialized.");
+}
+
+BT::PortsList Yawn::providedPorts(){
+    return {};
+}
+
+BT::NodeStatus Yawn::onStart(){
+    // if (!callStateChangeService(ros_node_)) {
+    //     RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Yawn node.");
+    //     return BT::NodeStatus::FAILURE;
+    // }
+    // while (publisher_->get_subscription_count() == 0) {
+    //     RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_yawning...");
+    //     rclcpp::sleep_for(std::chrono::milliseconds(100));
+    // }
+    // auto msg = std_msgs::msg::Bool();
+    // msg.data = true;
+    // publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node started. Published True to /start_yawning.");
+    return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus Yawn::onRunning(){
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node running.");
+    return BT::NodeStatus::RUNNING;
+}
+
+void Yawn::onHalted(){
+    // auto msg = std_msgs::msg::Bool();
+    // msg.data = false;
+    // publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Yawn node halted. Published False to /start_yawning.");
+}
 
 //IsDetectedCondition Node
 
@@ -119,6 +165,32 @@ BT::NodeStatus IsDetectedCondition::onTick(const std::shared_ptr<std_msgs::msg::
 }
 
 BT::PortsList IsDetectedCondition::providedPorts() {
+    return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
+}
+
+//IsBoredConditionNode
+
+IsBoredCondition::IsBoredCondition(
+    const std::string& name, 
+    const BT::NodeConfig& config, 
+    const BT::RosNodeParams& params
+) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(true) {}
+
+BT::NodeStatus IsBoredCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
+
+    if (last_msg) {
+        last_msg_value_ = last_msg->data;
+    }
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsBoredCondition"), 
+        "Face detected: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        last_msg_value_ ? "True" : "False"
+    );
+    return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+}
+
+BT::PortsList IsBoredCondition::providedPorts() {
     return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
 }
 
