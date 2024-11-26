@@ -15,43 +15,18 @@ class IdleNode(Node):
         self.btree_sub = self.create_subscription(Bool, '/start_idling', self.start_idling_callback, 10)
         self.command_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
 
-        # self.timer = self.create_timer(0.05,self.publish_command)
-        self.timer = None
-        self.timeout_timer = None
-        self.last_msg_time = None
+        self.timer = None # A timer to publish command
 
     def start_idling_callback(self, msg):
-        """Handles incoming /start_idling messages."""
-        self.last_msg_time = self.get_clock().now()
-
-        # Start publishing commands if not already running
-        if not self.timer:
+        
+        if msg.data == True and not self.timer:
             self.get_logger().info("Starting idle motion.")
             self.timer = self.create_timer(0.05, self.publish_command)
 
-        # Start or reset the timeout checker
-        if not self.timeout_timer:
-            self.timeout_timer = self.create_timer(0.05, self.check_timeout)
-            pass
-
-    def check_timeout(self):
-        """Checks if no message has been received recently and stops idling if necessary."""
-        if not self.last_msg_time:
-            return  # Sanity check
-
-        time_now = self.get_clock().now()
-        if (time_now - self.last_msg_time) > Duration(seconds=2):
-            self.get_logger().info("Stopping idle motion due to timeout.")
-            self.stop_idling()
-
-    def stop_idling(self):
-        """Stops the idle motion and cancels all timers."""
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        if self.timeout_timer:
-            self.timeout_timer.cancel()
-            self.timeout_timer = None
+        if msg.data == False:
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
 
     def publish_command(self):
         time_now = self.get_clock().now().nanoseconds * 1e-9

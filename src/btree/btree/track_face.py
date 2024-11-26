@@ -11,11 +11,12 @@ class FaceTrackerNode(Node):
         self.face_sub = self.create_subscription(JointState,'/face_position',self.set_target,10)
         self.btree_sub = self.create_subscription(Bool,'/start_tracking',self.publish_command,10)
         self.command_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
-        self.target_face = JointState()
+        self.target_face = None
         
     def publish_command(self,msg):
         self.get_logger().info("Publishing target face.")
-        self.command_publisher.publish(self.target_face)
+        if self.target_face:
+            self.command_publisher.publish(self.target_face)
     
     def set_target(self,msg):
         self.target_face = msg

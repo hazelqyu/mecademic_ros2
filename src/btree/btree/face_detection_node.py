@@ -200,8 +200,8 @@ class FaceDetectorNode(Node):
             point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
 
             target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
-            self.get_logger().info(f"Object position in camera frame:{point_in_camera_frame.point}")
-            self.get_logger().info(f"Object position in robot base frame:{point_in_base_frame.point}")
+            # self.get_logger().info(f"Object position in camera frame:{point_in_camera_frame.point}")
+            # self.get_logger().info(f"Object position in robot base frame:{point_in_base_frame.point}")
             # Now we have the object's position in the robot's base frame
             return target_position
 
@@ -274,7 +274,6 @@ class FaceDetectorNode(Node):
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
                         'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint']
-        print(self.target_pos)
         state_msg.position = self.target_pos
         state_msg.header.stamp = self.get_clock().now().to_msg()
 

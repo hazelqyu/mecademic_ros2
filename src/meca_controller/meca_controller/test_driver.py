@@ -3,7 +3,7 @@
 import mecademicpy.robot as mdr
 from meca_controller.robot_controller import RobotController
 from custom_interfaces.msg import RobotStatus, SingleJointState
-from custom_interfaces.srv import ClearMotion
+from custom_interfaces.srv import ClearMotion, ExecuteMotion
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose,Twist
@@ -61,8 +61,9 @@ class MecademicRobotDriver(Node):
         self.joint_rel_subscriber = self.create_subscription(JointState, "/mecademic_robot_joint_rel", self.joint_rel_callback,10)
         self.joint_vel_subscriber = self.create_subscription(Twist,"/cmd_vel",self.set_joint_vel_callback,10)
         
-        # TODO: change this to a service
+        # create services
         self.state_change_srv = self.create_service(ClearMotion, "/state_change", self.state_change)
+        self.motion_srv = self.create_service(ExecuteMotion,'/execute_motion',self.execute_motion_callback)
         
         # Keep track of error state:
         self.is_in_error = False
@@ -185,10 +186,25 @@ class MecademicRobotDriver(Node):
             self.get_logger().error(f"Failed to clear motion buffer: {e}")
         return response
 
+    def execute_motion_callback(self,request,response):
+        try:
+            self.get_logger().info()(f"Executing motion:{request.motion_name}")
+            if request.motion_name == "yawn":
+                self.test_yawn()
+                response.success = True
+            else:
+                self.get_logger().warn(f"Unknown motion: {request.motion_name}")
+                response.success = False
+        except Exception as e:
+            self.get_logger().error(f"Motion execution failed: {e}")
+            response.success = False
+
+        return response
     
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]
         # self.controller.move_joints(joint_positions_deg)
+        print(joint_positions_deg)
         self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
                               joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
@@ -223,6 +239,14 @@ class MecademicRobotDriver(Node):
             print("sine_value:",sine_value)
             self.robot.MoveJoints(0,math.degrees(sine_value),0,0,-math.degrees(sine_value),0)
             time.sleep(0.08)
+    
+    def test_yawn(self):
+        self.robot.SetJointAcc(10)
+        self.robot.SetJointVelLimit(15)
+        self.robot.MoveJoints(0, 0, -90, 0, 0, 0)
+        self.robot.MoveJoints(0, 0, 0, 0, 0, 0)
+        self.robot.WaitIdle(timeout=60)
+        self.robot.SetJointVel(25)
     
 def main(args=None):
     # Initialize ROS 2 Python client library

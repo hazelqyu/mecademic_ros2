@@ -18,51 +18,68 @@ BT::PortsList TrackFace::providedPorts() {
 }
 
 bool TrackFace::setMessage(std_msgs::msg::Bool& msg) {
-    if (!callStateChangeService(node_)) {
-        RCLCPP_ERROR(rclcpp::get_logger("TrackFace"), "Failed to call state change service.");
-        return false;  // Return false if the service call fails
-    }
+    // if (!callStateChangeService(node_)) {
+    //     RCLCPP_ERROR(rclcpp::get_logger("TrackFace"), "Failed to call state change service.");
+    //     return false;  // Return false if the service call fails
+    // }
     msg.data = true;  // Always publish a "start tracking" signal
     RCLCPP_INFO(rclcpp::get_logger("TrackFace"), "Publishing tracking signal.");
     return true;  // Return true to indicate successful message setup
 }
 
-Idle::Idle(
-    const std::string& name,
-    const BT::NodeConfig& config,
-    const BT::RosNodeParams& params
-) : BT::RosTopicPubNode<std_msgs::msg::Bool>(name, config, params) {
-    node_ = rclcpp::Node::make_shared("idle_btree_node");
+
+Idle::Idle(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config){
+
+    ros_node_ = rclcpp::Node::make_shared("idle_node");
+    publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_idling", 10);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Idle node initialized.");
 }
 
-BT::PortsList Idle::providedPorts() {
-    // Default ports for topic name; add more if needed
-    return BT::RosTopicPubNode<std_msgs::msg::Bool>::providedBasicPorts({});
+// Ports definition
+BT::PortsList Idle::providedPorts(){
+    return {};
 }
 
-bool Idle::setMessage(std_msgs::msg::Bool& msg) {
-    if (!callStateChangeService(node_)) {
-        RCLCPP_ERROR(rclcpp::get_logger("TrackFace"), "Failed to call state change service.");
-        return false;  // Return false if the service call fails
+BT::NodeStatus Idle::onStart(){
+    while (publisher_->get_subscription_count() == 0) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_idling...");
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
     }
-    msg.data = true;  // Always publish a "start tracking" signal
-    RCLCPP_INFO(rclcpp::get_logger("Idle"), "Publishing Idling signal.");
-    return true;  // Return true to indicate successful message setup
+    auto msg = std_msgs::msg::Bool();
+    msg.data = true;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Idle node started. Published True to /start_idling.");
+    return BT::NodeStatus::RUNNING;
 }
 
-// Idle::Idle(const std::string& name) : BT::SyncActionNode(name, {}) {}
+BT::NodeStatus Idle::onRunning(){
+    auto msg = std_msgs::msg::Bool();
+    msg.data = true;
+    publisher_->publish(msg);
+    RCLCPP_INFO(ros_node_->get_logger(), "Idle node running.");
+    return BT::NodeStatus::RUNNING;
+}
 
-// BT::NodeStatus Idle::tick() {
-//     RCLCPP_INFO(rclcpp::get_logger("Idle"), "Idling...");
-//     return BT::NodeStatus::SUCCESS;
-// }
+void Idle::onHalted(){
+    auto msg = std_msgs::msg::Bool();
+    msg.data = false;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Idle node halted. Published False to /start_idling.");
+}
+
+
+
 
 // IsDetectedCondition Node
 IsDetectedCondition::IsDetectedCondition(
     const std::string& name, 
     const BT::NodeConfig& config, 
     const BT::RosNodeParams& params
-) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params) {}
+) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
 
 BT::NodeStatus IsDetectedCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
     RCLCPP_INFO(
@@ -71,10 +88,9 @@ BT::NodeStatus IsDetectedCondition::onTick(const std::shared_ptr<std_msgs::msg::
         last_msg ? (last_msg->data ? "True" : "False") : "null"
     );
     if (last_msg) {
-        // RCLCPP_INFO(rclcpp::get_logger("IsDetectedCondition"), "Face detected: %s", last_msg->data ? "True" : "False");
-        return last_msg->data ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+        last_msg_value_ = last_msg->data;
     }
-    return BT::NodeStatus::FAILURE;
+    return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 BT::PortsList IsDetectedCondition::providedPorts() {

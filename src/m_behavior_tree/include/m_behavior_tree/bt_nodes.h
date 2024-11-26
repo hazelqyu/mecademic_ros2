@@ -18,21 +18,23 @@ protected:
 };
 
 
-class Idle : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
+class Idle : public BT::StatefulActionNode{
 public:
-    Idle(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    Idle(const std::string &name, const BT::NodeConfig &config);
+
+    // Override required StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
     static BT::PortsList providedPorts();
-protected:
-    bool setMessage(std_msgs::msg::Bool& msg) override;
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
 };
 
-
-// Custom Action Node: Idle
-// class Idle : public BT::SyncActionNode {
-// public:
-//     Idle(const std::string& name);
-//     BT::NodeStatus tick() override;
-// };
 
 // Custom Condition Node: IsDetectedCondition
 class IsDetectedCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
@@ -40,6 +42,10 @@ public:
     IsDetectedCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
     BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) override;
     static BT::PortsList providedPorts();
+
+private:
+    // Member variable to store the last message value
+    bool last_msg_value_;
 };
 
 #endif  // MY_BT_NODES_H
