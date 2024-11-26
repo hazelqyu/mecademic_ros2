@@ -47,6 +47,10 @@ BT::NodeStatus Idle::onStart(){
         RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_idling...");
         rclcpp::sleep_for(std::chrono::milliseconds(100));
     }
+    if (!callStateChangeService(node_)) {
+        RCLCPP_ERROR(rclcpp::get_logger("Idle"), "Failed to call state change service.");
+        return BT::NodeStatus::FAILURE;
+    }
     auto msg = std_msgs::msg::Bool();
     msg.data = true;
     publisher_->publish(msg);
@@ -82,14 +86,16 @@ IsDetectedCondition::IsDetectedCondition(
 ) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
 
 BT::NodeStatus IsDetectedCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
-    RCLCPP_INFO(
-        rclcpp::get_logger("IsDetectedCondition"), 
-        "Face detected: %s", 
-        last_msg ? (last_msg->data ? "True" : "False") : "null"
-    );
+
     if (last_msg) {
         last_msg_value_ = last_msg->data;
     }
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsDetectedCondition"), 
+        "Face detected: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        last_msg_value_
+    );
     return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
