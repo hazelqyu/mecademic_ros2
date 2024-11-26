@@ -9,20 +9,36 @@
 #include "std_msgs/msg/bool.hpp"
 
 // Custom Action Node: TrackFace
-class TrackFace : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
-public:
-    TrackFace(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
-    static BT::PortsList providedPorts();
-protected:
-    bool setMessage(std_msgs::msg::Bool& msg) override;
-};
+// class TrackFace : public BT::RosTopicPubNode<std_msgs::msg::Bool> {
+// public:
+//     TrackFace(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+//     static BT::PortsList providedPorts();
+// protected:
+//     bool setMessage(std_msgs::msg::Bool& msg) override;
+// };
 
+class TrackFace : public BT::StatefulActionNode{
+public:
+    TrackFace(const std::string &name, const BT::NodeConfig &config);
+
+    //StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
+    static BT::PortsList providedPorts();
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
+};
 
 class Idle : public BT::StatefulActionNode{
 public:
     Idle(const std::string &name, const BT::NodeConfig &config);
 
-    // Override required StatefulActionNode methods
+    //StatefulActionNode methods
     BT::NodeStatus onStart() override;
     BT::NodeStatus onRunning() override;
     void onHalted() override;

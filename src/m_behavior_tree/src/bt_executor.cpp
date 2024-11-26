@@ -25,7 +25,7 @@ public:
 
     // Register BehaviorTree nodes
     factory_.registerNodeType<IsDetectedCondition>("IsDetectedCondition", params);
-    factory_.registerNodeType<TrackFace>("TrackFace", params);
+    factory_.registerNodeType<TrackFace>("TrackFace");
     factory_.registerNodeType<Idle>("Idle");
 
     // Load behavior tree from XML

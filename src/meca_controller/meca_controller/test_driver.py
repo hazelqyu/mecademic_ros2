@@ -14,7 +14,6 @@ import math
 
 
 def singleton(cls):
-    """A decorator to make a class a singleton."""
     instances = {}  # Dictionary to store the single instance
 
     def get_instance(*args, **kwargs):
@@ -179,6 +178,7 @@ class MecademicRobotDriver(Node):
         try:
             self.robot.ClearMotion()
             self.robot.WaitMotionCleared()
+            self.robot.ResumeMotion()
             response.success = True
             self.get_logger().info("Motion buffer cleared")
         except Exception as e:

@@ -4,37 +4,58 @@
 
 bool callStateChangeService(rclcpp::Node::SharedPtr node);
 
-TrackFace::TrackFace(
-    const std::string& name,
-    const BT::NodeConfig& config,
-    const BT::RosNodeParams& params
-) : BT::RosTopicPubNode<std_msgs::msg::Bool>(name, config, params) {
-    node_ = rclcpp::Node::make_shared("track_face_btree_node");
+//TrackFace Node
+
+TrackFace::TrackFace(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config){
+    ros_node_ = rclcpp::Node::make_shared("track_face_btree_node");
+    publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_tracking", 10);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "TrackFace tree node initialized.");
 }
 
-BT::PortsList TrackFace::providedPorts() {
-    // Default ports for topic name; add more if needed
-    return BT::RosTopicPubNode<std_msgs::msg::Bool>::providedBasicPorts({});
+BT::PortsList TrackFace::providedPorts(){
+    return {};
 }
 
-bool TrackFace::setMessage(std_msgs::msg::Bool& msg) {
-    // if (!callStateChangeService(node_)) {
-    //     RCLCPP_ERROR(rclcpp::get_logger("TrackFace"), "Failed to call state change service.");
-    //     return false;  // Return false if the service call fails
-    // }
-    msg.data = true;  // Always publish a "start tracking" signal
-    RCLCPP_INFO(rclcpp::get_logger("TrackFace"), "Publishing tracking signal.");
-    return true;  // Return true to indicate successful message setup
+BT::NodeStatus TrackFace::onStart(){
+    while (publisher_->get_subscription_count() == 0) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_tracking...");
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    auto msg = std_msgs::msg::Bool();
+    msg.data = true;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "TrackFace node started. Published True to /start_tracking.");
+    return BT::NodeStatus::RUNNING;
 }
+
+BT::NodeStatus TrackFace::onRunning(){
+    RCLCPP_INFO(ros_node_->get_logger(), "TrackFace node running.");
+    return BT::NodeStatus::RUNNING;
+}
+
+void TrackFace::onHalted(){
+    auto msg = std_msgs::msg::Bool();
+    msg.data = false;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "TrackFace node halted. Published False to /start_tracking.");
+}
+
+
+//Idle Node
 
 
 Idle::Idle(const std::string &name, const BT::NodeConfig &config)
     : BT::StatefulActionNode(name, config){
 
-    ros_node_ = rclcpp::Node::make_shared("idle_node");
+    ros_node_ = rclcpp::Node::make_shared("idle_tree_node");
     publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_idling", 10);
 
-    RCLCPP_INFO(ros_node_->get_logger(), "Idle node initialized.");
+    RCLCPP_INFO(ros_node_->get_logger(), "Idle tree node initialized.");
 }
 
 // Ports definition
@@ -43,13 +64,13 @@ BT::PortsList Idle::providedPorts(){
 }
 
 BT::NodeStatus Idle::onStart(){
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Idle node.");
+        return BT::NodeStatus::FAILURE;
+    }
     while (publisher_->get_subscription_count() == 0) {
         RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_idling...");
         rclcpp::sleep_for(std::chrono::milliseconds(100));
-    }
-    if (!callStateChangeService(node_)) {
-        RCLCPP_ERROR(rclcpp::get_logger("Idle"), "Failed to call state change service.");
-        return BT::NodeStatus::FAILURE;
     }
     auto msg = std_msgs::msg::Bool();
     msg.data = true;
@@ -60,9 +81,6 @@ BT::NodeStatus Idle::onStart(){
 }
 
 BT::NodeStatus Idle::onRunning(){
-    auto msg = std_msgs::msg::Bool();
-    msg.data = true;
-    publisher_->publish(msg);
     RCLCPP_INFO(ros_node_->get_logger(), "Idle node running.");
     return BT::NodeStatus::RUNNING;
 }
@@ -77,8 +95,9 @@ void Idle::onHalted(){
 
 
 
+//IsDetectedCondition Node
 
-// IsDetectedCondition Node
+
 IsDetectedCondition::IsDetectedCondition(
     const std::string& name, 
     const BT::NodeConfig& config, 
@@ -94,7 +113,7 @@ BT::NodeStatus IsDetectedCondition::onTick(const std::shared_ptr<std_msgs::msg::
         rclcpp::get_logger("IsDetectedCondition"), 
         "Face detected: %s", 
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
-        last_msg_value_
+        last_msg_value_ ? "True" : "False"
     );
     return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }

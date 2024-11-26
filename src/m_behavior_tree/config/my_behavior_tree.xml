@@ -3,7 +3,7 @@
         <ReactiveFallback name="root_selector">
             <ReactiveSequence>
                 <IsDetectedCondition name="is_detected_condition" topic_name="/is_detected"/>
-                <TrackFace name="track_face" topic_name="/start_tracking"/>
+                <TrackFace name="track_face"/>
             </ReactiveSequence>
             <Idle name="idle"/>
         </ReactiveFallback>
