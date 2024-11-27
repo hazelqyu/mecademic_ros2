@@ -36,7 +36,8 @@ class MecademicRobotDriver(Node):
         # Provide all available real-time feedback messages
         self.robot.SetRealTimeMonitoring('all')
         # self.robot.SetBlending(80)
-        self.robot.SetJointVel(25)
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(40)
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
         print('ready.')
@@ -128,8 +129,6 @@ class MecademicRobotDriver(Node):
         self.is_in_error = robot_status.error_status
         if self.is_in_error:
             self.handle_error()
-        
-        # self.get_logger().info("Publishing joint states")
 
         data = self.robot.GetRobotRtData(synchronous_update=True) 
         joint_state = JointState()
@@ -144,8 +143,6 @@ class MecademicRobotDriver(Node):
             math.radians(data.rt_joint_pos.data[5])
         ]
         self.joint_current_state = joint_state.position
-        # joint_state.velocity = [data.rt_joint_vel.data[0],data.rt_joint_vel.data[1],data.rt_joint_vel.data[2],
-        #                         data.rt_joint_vel.data[3],data.rt_joint_vel.data[4],data.rt_joint_vel.data[5]]
         self.feedback_publisher.publish(joint_state)
     
     # Callback function to update a single joint state
@@ -242,12 +239,14 @@ class MecademicRobotDriver(Node):
             time.sleep(0.08)
     
     def test_yawn(self):
-        self.robot.SetJointAcc(10)
+        self.robot.SetJointAcc(7.5)
         self.robot.SetJointVelLimit(15)
-        self.robot.MoveJoints(0, 0, -90, 0, 0, 0)
-        self.robot.MoveJoints(0, 0, 0, 0, 0, 0)
+        # TODO: based on current joint state
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointVel(25)
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(40)
     
 def main(args=None):
     # Initialize ROS 2 Python client library
