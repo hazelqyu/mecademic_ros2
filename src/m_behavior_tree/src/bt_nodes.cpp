@@ -176,7 +176,7 @@ IsBoredCondition::IsBoredCondition(
     const std::string& name, 
     const BT::NodeConfig& config, 
     const BT::RosNodeParams& params
-) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(true) {}
+) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
 
 BT::NodeStatus IsBoredCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
 

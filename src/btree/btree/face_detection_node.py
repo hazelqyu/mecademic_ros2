@@ -14,7 +14,8 @@ import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Header,Bool
+from std_msgs.msg import Header,Bool 
+from btree.face_condition import FaceChecker
 
 
 class FaceDetectorNode(Node):
@@ -47,7 +48,7 @@ class FaceDetectorNode(Node):
         self.pre_pitch = None
         self.pre_joint2_pitch = None
         
-        self.target_pos = [0,0,0,0,0,0]
+        self.target_joint_state = [0,0,0,0,0,0]
         
         # Load the pre-trained FER2013 model (mini-XCEPTION trained on FER2013)
         self.model = load_model('/home/andrek/ros2_ws/emotion _detection.keras')
@@ -68,18 +69,27 @@ class FaceDetectorNode(Node):
         self.is_detected_publisher = self.create_publisher(Bool,'/is_detected',10)
         self.is_happy_publisher = self.create_publisher(Bool,'/is_happy',10)
         self.is_sad_publisher = self.create_publisher(Bool,'/is_sad',10)
+        self.is_bored_publisher = self.create_publisher(Bool,'/is_bored',10)
         self.face_publisher = self.create_publisher(JointState, '/face_position', 10)
         self.condition_publish_timer = self.create_timer(0.1,self.publish_condition)
         
         self.is_detected = False
         self.is_happy = False
         self.is_sad = False
+        self.is_bored = False
+        self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05)
     
     def publish_condition(self):
-        msg = Bool()
-        msg.data = self.is_detected
-        self.is_detected_publisher.publish(msg)
+        is_detected_msg = Bool()
+        is_detected_msg.data = self.is_detected
+        self.is_detected_publisher.publish(is_detected_msg)
+        
+        is_bored_msg = Bool()
+        is_bored_msg.data = self.is_bored
+        self.is_bored_publisher.publish(is_bored_msg)
+        
         self.get_logger().info(f"Face detected:{self.is_detected}")
+        self.get_logger().info(f"Face bored:{self.is_bored}")
     
     def check_frames(self):
         # Check each required frame
@@ -139,6 +149,7 @@ class FaceDetectorNode(Node):
                     self.face_pos = self.pos_transform(self.face_center,self.face_depth)
                     self.lookat(self.face_pos)
                     self.is_detected = True
+                    self.is_bored = self.face_condition_checker.check_face_bored(self.face_pos)
 
                 # # Extract the face from the frame
                 # face_image = frame[y:y+h, x:x+w]
@@ -200,9 +211,7 @@ class FaceDetectorNode(Node):
             point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
 
             target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
-            # self.get_logger().info(f"Object position in camera frame:{point_in_camera_frame.point}")
-            # self.get_logger().info(f"Object position in robot base frame:{point_in_base_frame.point}")
-            # Now we have the object's position in the robot's base frame
+
             return target_position
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -231,7 +240,7 @@ class FaceDetectorNode(Node):
         # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
         
         if h_movement >= movement_threshold or v_movement>=movement_threshold:
-            self.target_pos = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
+            self.target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
             self.pre_yaw = yaw
             self.pre_pitch = joint3_pitch 
             self.publish_joint_state()
@@ -248,7 +257,6 @@ class FaceDetectorNode(Node):
         #     joint2_pitch = -0.7854
         return joint2_pitch
         
-
     def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
         try:
             link_frame = self.tf_buffer.lookup_transform(
@@ -274,13 +282,14 @@ class FaceDetectorNode(Node):
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
                         'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint']
-        state_msg.position = self.target_pos
+        state_msg.position = self.target_joint_state
         state_msg.header.stamp = self.get_clock().now().to_msg()
 
         # Publish the joint state message
         self.face_publisher.publish(state_msg)
         self.get_logger().info("Joint state published")
-    
+   
+ 
 def main(args=None):
     rclpy.init(args=args)
     detector = FaceDetectorNode()
