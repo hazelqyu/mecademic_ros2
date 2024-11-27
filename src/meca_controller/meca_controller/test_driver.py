@@ -187,7 +187,7 @@ class MecademicRobotDriver(Node):
         try:
             self.get_logger().info(f"Executing motion:{request.motion_name}")
             if request.motion_name == "yawn":
-                self.test_yawn()
+                self.yawn()
                 self.robot.WaitIdle()
                 response.success = True
             else:
@@ -238,15 +238,30 @@ class MecademicRobotDriver(Node):
             self.robot.MoveJoints(0,math.degrees(sine_value),0,0,-math.degrees(sine_value),0)
             time.sleep(0.08)
     
-    def test_yawn(self):
-        self.robot.SetJointAcc(7.5)
-        self.robot.SetJointVelLimit(15)
-        # TODO: based on current joint state
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+    def yawn(self):
+        time_start = time.time()
+        duration = 0
+        fre = 1/5
+        while duration < 5:
+            duration = time.time()-time_start
+            sine_value = -45+(-45) *math.sin(2*math.pi *fre*duration)
+            self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, sine_value, 0, 0, 0)
+            time.sleep(0.1)
+            
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(40)
+
+        # self.robot.SetJointAcc(7.5)
+        # self.robot.SetJointVelLimit(15)
+        # self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, 0, 0)
+        # self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+        # self.robot.WaitIdle(timeout=60)
+        # self.robot.SetJointAcc(15)
+        # self.robot.SetJointVelLimit(40)
+        
+    def scared(self):
+        self.robot.SetJointAcc(30)
+        self.robot.SetJointVelLimit(80)
+        
     
 def main(args=None):
     # Initialize ROS 2 Python client library

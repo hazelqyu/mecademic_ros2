@@ -77,7 +77,7 @@ class FaceDetectorNode(Node):
         self.is_happy = False
         self.is_sad = False
         self.is_bored = False
-        self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05)
+        self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05,time_cooldown=10)
     
     def publish_condition(self):
         is_detected_msg = Bool()
