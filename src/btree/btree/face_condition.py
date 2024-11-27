@@ -9,7 +9,13 @@ class FaceChecker:
         self.timer_start = None
         self.is_still = False
 
-    def check_face_bored(self, face_position):
+    def check_face_bored(self, face_detected,face_position):
+        
+        if not face_detected:
+            self.timer_start = time.time()
+            self.initial_position = None
+            self.is_still = False
+            return False
 
         if self.initial_position is None:
             self.initial_position = face_position

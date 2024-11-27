@@ -116,6 +116,10 @@ BT::PortsList Yawn::providedPorts() {
 }
 
 BT::NodeStatus Yawn::onStart() {
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Yawn node.");
+        return BT::NodeStatus::FAILURE;
+    }
     // Start the motion service if it hasn't been started yet
     if (!motion_started_) {
         RCLCPP_INFO(ros_node_->get_logger(), "Calling ExecuteMotion service for Yawn...");

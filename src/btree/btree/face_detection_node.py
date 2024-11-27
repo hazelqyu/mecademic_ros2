@@ -149,7 +149,7 @@ class FaceDetectorNode(Node):
                     self.face_pos = self.pos_transform(self.face_center,self.face_depth)
                     self.lookat(self.face_pos)
                     self.is_detected = True
-                    self.is_bored = self.face_condition_checker.check_face_bored(self.face_pos)
+                    
 
                 # # Extract the face from the frame
                 # face_image = frame[y:y+h, x:x+w]
@@ -167,7 +167,7 @@ class FaceDetectorNode(Node):
                 #     # Optionally, show a default message if no emotion is detected
                 #     cv2.putText(frame, 'No emotion detected', (x, y - 10),
                 #                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-
+        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected,self.face_pos)
         # Display the frame with face detection and emotion recognition
         cv2.imshow('Facial Tracking and Emotion Recognition', frame)
         cv2.waitKey(1) 
