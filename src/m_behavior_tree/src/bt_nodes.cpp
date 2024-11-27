@@ -129,6 +129,7 @@ BT::NodeStatus Yawn::onRunning() {
     // Check if the service is complete
     if (motion_client_.isServiceComplete()) {
         RCLCPP_INFO(ros_node_->get_logger(), "Yawn motion completed successfully.");
+        this->halt();
         return BT::NodeStatus::SUCCESS; // Mark the node as complete
     }
 
@@ -196,19 +197,19 @@ BT::PortsList IsBoredCondition::providedPorts() {
 }
 
 bool callStateChangeService(rclcpp::Node::SharedPtr node) {
-    // Create a client for the service
+    
     auto client = node->create_client<custom_interfaces::srv::ClearMotion>("/state_change");
     
-    // Wait for the service to be available
-    if (!client->wait_for_service(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(node->get_logger(), "State change service not available.");
-        return false;
+    while (!client->wait_for_service(std::chrono::seconds(1))) {
+        if(!rclcpp::ok()){
+            RCLCPP_ERROR(node->get_logger(), "client interrupted while waiting for service to appear.");
+            return 1;
+        }
+        RCLCPP_INFO(node->get_logger(), "waiting for service to appear...");
     }
 
-    // Create the request
     auto request = std::make_shared<custom_interfaces::srv::ClearMotion::Request>();
 
-    // Call the service
     auto future = client->async_send_request(request);
 
     // Wait for the response

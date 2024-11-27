@@ -188,7 +188,7 @@ class MecademicRobotDriver(Node):
 
     def execute_motion_callback(self,request,response):
         try:
-            self.get_logger().info()(f"Executing motion:{request.motion_name}")
+            self.get_logger().info(f"Executing motion:{request.motion_name}")
             if request.motion_name == "yawn":
                 self.test_yawn()
                 self.robot.WaitIdle()
