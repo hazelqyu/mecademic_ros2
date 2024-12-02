@@ -124,6 +124,10 @@ class FaceDetectorNode(Node):
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.mp_face_detection.process(rgb_frame)
         self.is_detected = False
+        
+        closest_face_depth = float('inf')  # Initialize with a large value
+        closest_face = None
+        
         if results.detections:
             for detection in results.detections:
                 bboxC = detection.location_data.relative_bounding_box
@@ -132,25 +136,31 @@ class FaceDetectorNode(Node):
                 y = int(bboxC.ymin * ih)
                 w = int(bboxC.width * iw)
                 h = int(bboxC.height * ih)
-                self.face_depth = (self.face_real_width * self.focal_length) / w
-                self.face_width = w
+                depth = (self.face_real_width * self.focal_length) / w
+                
+                if depth < closest_face_depth:
+                    closest_face_depth = depth
+                    closest_face = (x, y, w, h, depth)
+            
+            if closest_face:
+                x, y, self.face_width, h, self.face_depth = closest_face
+                # self.face_depth = (self.face_real_width * self.focal_length) / w
                 
                 # Calculate face center
                 center_x = x + w // 2
                 center_y = y + h // 2
                 self.face_center = [center_x,center_y]
-
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
-                cv2.putText(frame, f"Depth: {self.face_depth :.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                self.is_detected = True
                 
                 if self.face_depth and self.face_center:
                     self.get_logger().info(f"Face Center in camera frame:{self.face_center}")
                     self.face_pos = self.pos_transform(self.face_center,self.face_depth)
                     self.lookat(self.face_pos)
-                    self.is_detected = True
-                    
-
+                
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
+                cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            
                 # # Extract the face from the frame
                 # face_image = frame[y:y+h, x:x+w]
 
