@@ -3,19 +3,19 @@
 import rclpy
 from typing import Optional
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, JointState
 from cv_bridge import CvBridge,CvBridgeError
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
-import mediapipe as mp
+# import mediapipe as mp
 import math
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
-from sensor_msgs.msg import JointState
 from std_msgs.msg import Header,Bool 
 from btree.face_condition import FaceChecker
+from yoloface.face_detector import YoloDetector
 
 
 class FaceDetectorNode(Node):
@@ -41,7 +41,8 @@ class FaceDetectorNode(Node):
         self.face_width = 0.0
         self.face_center = []
         self.face_pos = None
-        self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.3)
+        # self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.3)
+        self.yolo_detector = YoloDetector(min_face=50, target_size=640, device='cpu')
         
         # For threshold
         self.pre_yaw = None
@@ -114,73 +115,121 @@ class FaceDetectorNode(Node):
             self.get_logger().info("Waiting for all frames to be available...")
             return
         try:
-            # Convert ROS Image message to OpenCV image
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-
         except CvBridgeError as e:
-            print(f"Image conversion error:{e}")
+            print(f"Image conversion error: {e}")
             return
 
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.mp_face_detection.process(rgb_frame)
         self.is_detected = False
         
-        closest_face_depth = float('inf')  # Initialize with a large value
+        # Use YOLO for face detection
+        bboxes, _ = self.yolo_detector.predict(rgb_frame, conf_thres=0.3, iou_thres=0.5)
+        
+        closest_face_depth = float('inf')
         closest_face = None
         
-        if results.detections:
-            for detection in results.detections:
-                bboxC = detection.location_data.relative_bounding_box
-                ih, iw, _ = frame.shape
-                x = int(bboxC.xmin * iw)
-                y = int(bboxC.ymin * ih)
-                w = int(bboxC.width * iw)
-                h = int(bboxC.height * ih)
+        if bboxes[0]:  # If there are detected faces
+            for bbox in bboxes[0]:
+                x1, y1, x2, y2 = bbox
+                w = x2 - x1
+                h = y2 - y1
                 depth = (self.face_real_width * self.focal_length) / w
-                
+
                 if depth < closest_face_depth:
                     closest_face_depth = depth
-                    closest_face = (x, y, w, h, depth)
-            
+                    closest_face = (x1, y1, w, h, depth)
+
             if closest_face:
                 x, y, self.face_width, h, self.face_depth = closest_face
-                # self.face_depth = (self.face_real_width * self.focal_length) / w
-                
-                # Calculate face center
-                center_x = x + w // 2
+                center_x = x + self.face_width // 2
                 center_y = y + h // 2
-                self.face_center = [center_x,center_y]
+                self.face_center = [center_x, center_y]
                 self.is_detected = True
-                
+
                 if self.face_depth and self.face_center:
-                    self.get_logger().info(f"Face Center in camera frame:{self.face_center}")
-                    self.face_pos = self.pos_transform(self.face_center,self.face_depth)
+                    self.get_logger().info(f"Face Center in camera frame: {self.face_center}")
+                    self.face_pos = self.pos_transform(self.face_center, self.face_depth)
                     self.lookat(self.face_pos)
-                
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+                cv2.rectangle(frame, (x, y), (x + self.face_width, y + h), (255, 0, 0), 2)
                 cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
                 cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        
+        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected, self.face_pos)
+        cv2.imshow('YOLO Facial Tracking', frame)
+        cv2.waitKey(1)
+        # if not all(self.frames_available.values()):
+        #     self.get_logger().info("Waiting for all frames to be available...")
+        #     return
+        # try:
+        #     # Convert ROS Image message to OpenCV image
+        #     frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+
+        # except CvBridgeError as e:
+        #     print(f"Image conversion error:{e}")
+        #     return
+
+        # rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # # results = self.mp_face_detection.process(rgb_frame)
+        # self.is_detected = False
+        
+        # closest_face_depth = float('inf')  # Initialize with a large value
+        # closest_face = None
+        
+        # if results.detections:
+        #     for detection in results.detections:
+        #         bboxC = detection.location_data.relative_bounding_box
+        #         ih, iw, _ = frame.shape
+        #         x = int(bboxC.xmin * iw)
+        #         y = int(bboxC.ymin * ih)
+        #         w = int(bboxC.width * iw)
+        #         h = int(bboxC.height * ih)
+        #         depth = (self.face_real_width * self.focal_length) / w
+                
+        #         if depth < closest_face_depth:
+        #             closest_face_depth = depth
+        #             closest_face = (x, y, w, h, depth)
             
-                # # Extract the face from the frame
-                # face_image = frame[y:y+h, x:x+w]
+        #     if closest_face:
+        #         x, y, self.face_width, h, self.face_depth = closest_face
+        #         # self.face_depth = (self.face_real_width * self.focal_length) / w
+                
+        #         # Calculate face center
+        #         center_x = x + w // 2
+        #         center_y = y + h // 2
+        #         self.face_center = [center_x,center_y]
+        #         self.is_detected = True
+                
+        #         if self.face_depth and self.face_center:
+        #             self.get_logger().info(f"Face Center in camera frame:{self.face_center}")
+        #             self.face_pos = self.pos_transform(self.face_center,self.face_depth)
+        #             self.lookat(self.face_pos)
+                
+        #         cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        #         cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
+        #         cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            
+        #         # # Extract the face from the frame
+        #         # face_image = frame[y:y+h, x:x+w]
 
-                # # Recognize the emotion using the FER2013 model
-                # emotion, confidence = self.recognize_expression(face_image)
+        #         # # Recognize the emotion using the FER2013 model
+        #         # emotion, confidence = self.recognize_expression(face_image)
 
-                # # Only display the emotion and confidence if they are not None
-                # if emotion and confidence is not None:
-                #     # Draw the bounding box and emotion on the frame
-                #     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                #     cv2.putText(frame, f'{emotion} ({confidence:.2f})', (x, y - 10),
-                #                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
-                # else:
-                #     # Optionally, show a default message if no emotion is detected
-                #     cv2.putText(frame, 'No emotion detected', (x, y - 10),
-                #                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected,self.face_pos)
-        # Display the frame with face detection and emotion recognition
-        cv2.imshow('Facial Tracking and Emotion Recognition', frame)
-        cv2.waitKey(1) 
+        #         # # Only display the emotion and confidence if they are not None
+        #         # if emotion and confidence is not None:
+        #         #     # Draw the bounding box and emotion on the frame
+        #         #     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        #         #     cv2.putText(frame, f'{emotion} ({confidence:.2f})', (x, y - 10),
+        #         #                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+        #         # else:
+        #         #     # Optionally, show a default message if no emotion is detected
+        #         #     cv2.putText(frame, 'No emotion detected', (x, y - 10),
+        #         #                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+        # self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected,self.face_pos)
+        # # Display the frame with face detection and emotion recognition
+        # cv2.imshow('Facial Tracking and Emotion Recognition', frame)
+        # cv2.waitKey(1) 
         
     def preprocess_face(self,face_image):
         if face_image is None or face_image.size == 0:
