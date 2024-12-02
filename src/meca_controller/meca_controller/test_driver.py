@@ -150,7 +150,7 @@ class MecademicRobotDriver(Node):
         self.joint_desired_state[msg.idx] = msg.position
         # TODO: relative update
     
-    def test_queue(self):
+    def go_home(self):
         self.robot.WaitHomed()
         self.robot.MoveJoints(0,0,0,0,0,0)
         # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
@@ -239,28 +239,36 @@ class MecademicRobotDriver(Node):
             time.sleep(0.08)
     
     def yawn(self):
-        time_start = time.time()
-        duration = 0
-        fre = 1/5
-        while duration < 5:
-            duration = time.time()-time_start
-            sine_value = -45+(-45) *math.sin(2*math.pi *fre*duration)
-            self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, sine_value, 0, 0, 0)
-            time.sleep(0.1)
+        # time_start = time.time()
+        # duration = 0
+        # fre = 1/5
+        # while duration < 5:
+        #     duration = time.time()-time_start
+        #     sine_value = -45+(-45) *math.sin(2*math.pi *fre*duration)
+        #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, sine_value, 0, 0.4*sine_value, 0)
+        #     time.sleep(0.1)
             
-        self.robot.WaitIdle(timeout=60)
-
-        # self.robot.SetJointAcc(7.5)
-        # self.robot.SetJointVelLimit(15)
-        # self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, 0, 0)
-        # self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
         # self.robot.WaitIdle(timeout=60)
-        # self.robot.SetJointAcc(15)
-        # self.robot.SetJointVelLimit(40)
+
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(25)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, -30, 0)
+        self.robot.SetJointAcc(7.5)
+        self.robot.SetJointVelLimit(15)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 30, 0, 10, 0)
+        self.robot.WaitIdle(timeout=60)
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(40)
         
     def scared(self):
-        self.robot.SetJointAcc(30)
-        self.robot.SetJointVelLimit(80)
+        self.robot.SetJointVel(145)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, 40, 0, 0)
+        # self.robot.WaitIdle(timeout=120)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, 40, 0, 0)
+        self.robot.WaitIdle(timeout=60)
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(40)
         
     
 def main(args=None):
@@ -269,8 +277,7 @@ def main(args=None):
 
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
-    driver.test_queue()
-    # driver.test_wave()
+    driver.go_home()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

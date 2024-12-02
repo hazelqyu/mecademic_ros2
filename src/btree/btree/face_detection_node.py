@@ -256,15 +256,7 @@ class FaceDetectorNode(Node):
             self.publish_joint_state()
     
     def back_forth_movemont(self,depth) -> float:
-        joint2_pitch = 0
-        if depth <0.45 and depth> 0.3:
-            # joint2_pitch = 1.0472*((0.5-depth)/(0.5-0.2))
-            joint2_pitch = 0.7854
-        elif depth <=0.3:
-            joint2_pitch = 1.0472
-        # elif depth >0.8:
-        #     # joint2_pitch = -1.0472*((depth-0.7)/(1.0-0.7))
-        #     joint2_pitch = -0.7854
+        joint2_pitch =  1- 1.5*((depth-0.3)/0.7)
         return joint2_pitch
         
     def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
