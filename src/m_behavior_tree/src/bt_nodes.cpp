@@ -232,12 +232,12 @@ BT::NodeStatus IsBoredCondition::onTick(const std::shared_ptr<std_msgs::msg::Boo
     if (last_msg) {
         last_msg_value_ = last_msg->data;
     }
-    // RCLCPP_INFO(
-    //     rclcpp::get_logger("IsBoredCondition"), 
-    //     "IsBored: %s", 
-    //     // last_msg ? (last_msg->data ? "True" : "False") : "null"
-    //     last_msg_value_ ? "True" : "False"
-    // );
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsBoredCondition"), 
+        "IsBored: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        last_msg_value_ ? "True" : "False"
+    );
     return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 

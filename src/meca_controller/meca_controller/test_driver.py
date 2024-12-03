@@ -38,6 +38,7 @@ class MecademicRobotDriver(Node):
         # self.robot.SetBlending(80)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
+
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
         print('ready.')
@@ -151,7 +152,13 @@ class MecademicRobotDriver(Node):
         # TODO: relative update
     
     def go_home(self):
+        self.robot.ClearMotion()
+        self.robot.WaitMotionCleared()
+        self.robot.ResumeMotion()
         self.robot.WaitHomed()
+        self.robot.SetJointAcc(100)
+        self.robot.SetJointVelLimit(145)
+        # self.robot.SetJointVel(145)
         self.robot.MoveJoints(0,0,0,0,0,0)
         # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
         # self.robot.MoveLin(200, 100, 300, 0, 90, 0)
