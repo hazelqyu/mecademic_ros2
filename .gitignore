@@ -5,6 +5,8 @@
 
 /src/behaviortree_cpp
 /src/BehaviorTree.ROS2
+/src/yoloface/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
