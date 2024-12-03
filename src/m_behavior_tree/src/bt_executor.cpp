@@ -31,15 +31,15 @@ public:
     factory_.registerNodeType<IsBoredCondition>("IsBoredCondition", params);
     factory_.registerNodeType<Yawn>("Yawn");
 
-    factory_.registerNodeType<IsBoredCondition>("IsAlertCondition", params);
-    factory_.registerNodeType<Yawn>("Alert");
+    factory_.registerNodeType<IsAlertCondition>("IsAlertCondition", params);
+    factory_.registerNodeType<Alert>("Alert");
 
     // Load behavior tree from XML
     tree_ = factory_.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
 
     // Start the timer for periodic execution
     timer_ = this->create_wall_timer(
-      100ms,
+      10ms,
       std::bind(&BTExecutor::tick_tree, this)  // Timer callback
     );
 

@@ -10,7 +10,7 @@
                     </Sequence>
                     <Sequence>
                         <IsAlertCondition name="is_alert_condition" topic_name="/is_alert"/>
-                        <Yawn name="alert"/>
+                        <Alert name="alert"/>
                     </Sequence>
                     <TrackFace name="track_face"/>
                 </ReactiveFallback>

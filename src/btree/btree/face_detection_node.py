@@ -78,9 +78,13 @@ class FaceDetectorNode(Node):
         self.is_happy = False
         self.is_alert = False
         self.is_bored = False
+        self.face_count = 0
         self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05,time_cooldown=10)
     
     def publish_condition(self):
+        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected, self.face_pos)
+        self.is_alert = self.face_condition_checker.check_face_alert(self.face_count)
+        
         is_detected_msg = Bool()
         is_detected_msg.data = self.is_detected
         self.is_detected_publisher.publish(is_detected_msg)
@@ -93,9 +97,9 @@ class FaceDetectorNode(Node):
         is_alert_msg.data = self.is_alert
         self.is_alert_publisher.publish(is_alert_msg)
         
-        self.get_logger().info(f"Face detected:{self.is_detected}")
-        self.get_logger().info(f"Face bored:{self.is_bored}")
-        self.get_logger().info(f"Face alert:{self.is_alert}")
+        # self.get_logger().info(f"Face detected:{self.is_detected}")
+        # self.get_logger().info(f"Face bored:{self.is_bored}")
+        self.get_logger().info(f"Face alert:{self.face_count},{self.is_alert}")
     
     def check_frames(self):
         # Check each required frame
@@ -130,6 +134,8 @@ class FaceDetectorNode(Node):
         
         # Use YOLO for face detection
         bboxes, _ = self.yolo_detector.predict(rgb_frame, conf_thres=0.3, iou_thres=0.5)
+        self.face_count = len(bboxes[0])
+        self.get_logger().info(f"bboxes:{self.face_count}")
         
         closest_face_depth = float('inf')
         closest_face = None
@@ -160,9 +166,7 @@ class FaceDetectorNode(Node):
                 cv2.rectangle(frame, (x, y), (x + self.face_width, y + h), (255, 0, 0), 2)
                 cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
                 cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        
-        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected, self.face_pos)
-        self.is_alert = self.face_condition_checker.check_face_alert(len(bboxes))
+
         cv2.imshow('YOLO Facial Tracking', frame)
         cv2.waitKey(1)
         
@@ -240,7 +244,7 @@ class FaceDetectorNode(Node):
             self.publish_joint_state()
     
     def back_forth_movemont(self,depth) -> float:
-        joint2_pitch =  1.8- 1.5*((depth-0.3)/0.7)
+        joint2_pitch =  1.3-depth
         return joint2_pitch
         
     def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:

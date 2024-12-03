@@ -52,9 +52,10 @@ class FaceChecker:
         return self.is_still
 
     def check_face_alert(self,face_count):
-        self.new_face_appear = False
         if face_count > self.last_face_count:
             self.new_face_appear = True
+        else:
+            self.new_face_appear = False
         self.last_face_count = face_count
         return self.new_face_appear
             
