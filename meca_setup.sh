@@ -19,4 +19,6 @@ export PYTHONPATH=/opt/ros/rolling/lib/python3.12/site-packages:/home/andrek/ros
 # Path to cmeel.prefix site-packages folder (for pinocchio):
 export PYTHONPATH=$PYTHONPATH:/home/andrek/ros2_ws/mecavenv/lib/python3.12/site-packages/cmeel.prefix/lib/python3.12/site-packages
 
-export PYTHONPATH="${PYTHONPATH}:/home/andrek/ros2_ws/yoloface/"
+export PYTHONPATH=$PYTHONPATH:/home/andrek/ros2_ws/src/yoloface
+export PYTHONPATH=$PYTHONPATH:/home/andrek/ros2_ws/src
+
