@@ -31,6 +31,9 @@ public:
     factory_.registerNodeType<IsBoredCondition>("IsBoredCondition", params);
     factory_.registerNodeType<Yawn>("Yawn");
 
+    factory_.registerNodeType<IsBoredCondition>("IsAlertCondition", params);
+    factory_.registerNodeType<Yawn>("Alert");
+
     // Load behavior tree from XML
     tree_ = factory_.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
 

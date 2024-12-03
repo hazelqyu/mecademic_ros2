@@ -190,6 +190,10 @@ class MecademicRobotDriver(Node):
                 self.yawn()
                 self.robot.WaitIdle()
                 response.success = True
+            if request.motion_name == "alert":
+                self.alert()
+                self.robot.WaitIdle()
+                response.success = True
             else:
                 self.get_logger().warn(f"Unknown motion: {request.motion_name}")
                 response.success = False
@@ -260,12 +264,12 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
         
-    def scared(self):
-        self.robot.SetJointVel(145)
+    def alert(self):
+        self.robot.SetJointVel(150)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, 40, 0, 0)
-        # self.robot.WaitIdle(timeout=120)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, -40, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, 40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 45, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 45, 40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 45, -40, 0, 0)
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)

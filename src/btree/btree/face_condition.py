@@ -9,7 +9,9 @@ class FaceChecker:
         self.initial_position = None
         self.timer_start = None
         self.is_still = False
+        self.new_face_appear = False
         self.last_time_bored = None
+        self.last_face_count = 0
 
     def check_face_bored(self, face_detected, face_position):
 
@@ -49,6 +51,14 @@ class FaceChecker:
 
         return self.is_still
 
+    def check_face_alert(self,face_count):
+        self.new_face_appear = False
+        if face_count > self.last_face_count:
+            self.new_face_appear = True
+        self.last_face_count = face_count
+        return self.new_face_appear
+            
+    
     def _is_within_range(self, pos1, pos2):
 
         return all(abs(p1 - p2) <= self.range_threshold for p1, p2 in zip(pos1, pos2))
