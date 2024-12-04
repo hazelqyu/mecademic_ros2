@@ -31,7 +31,7 @@ class IdleNode(Node):
     def publish_command(self):
         time_now = self.get_clock().now().nanoseconds * 1e-9
         sine_value = 0.05 * math.sin(2 * math.pi * 0.5 * time_now)
-        cosine_value = 0.5 * math.sin(2 * math.pi * 0.1 * time_now)
+        cosine_value = 0.5 * math.sin(2 * math.pi * 0.15 * time_now)
 
         state_msg = JointState()
         state_msg.header = Header()
@@ -39,13 +39,19 @@ class IdleNode(Node):
             'meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint',
             'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'
         ]
-        # state_msg.position = [cosine_value, -0.2+sine_value, -0.45, 0, -1.5*sine_value, 0]
-        state_msg.position = [math.cos(2 * math.pi * 0.1 * time_now),
-                              -0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5)),
-                              -0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1)),
-                              0.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5)),
-                              math.sin(2 * math.pi * 0.5 * (time_now-1.5)),
-                              0]
+        # idling
+        state_msg.position = [cosine_value, -0.2+0.5*sine_value, -0.45+sine_value, 0, -1.5*sine_value, 0]
+        
+        # sleeping
+        # state_msg.position = [0, 0.3*sine_value, 0.69+0.5*sine_value, 0, -sine_value, 0]
+        
+        # dancing
+        # state_msg.position = [math.cos(2 * math.pi * 0.1 * time_now),
+        #                       -0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5)),
+        #                       -0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1)),
+        #                       0.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5)),
+        #                       math.sin(2 * math.pi * 0.5 * (time_now-1.5)),
+        #                       0]
         state_msg.header.stamp = self.get_clock().now().to_msg()
         self.command_publisher.publish(state_msg)
         

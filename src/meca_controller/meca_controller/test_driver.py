@@ -37,7 +37,7 @@ class MecademicRobotDriver(Node):
         self.robot.SetRealTimeMonitoring('all')
         # self.robot.SetBlending(80)
         self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(40)
+        self.robot.SetJointVelLimit(80)
 
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
@@ -102,12 +102,41 @@ class MecademicRobotDriver(Node):
         self.robot.ResumeMotion()
         self.stop()
     
+    # def handle_error(self):
+    #     print('robot is in error state, correcting..')
+    #     self.robot.ResetError()
+    #     self.is_in_error = False
+    #     print('...error state corrected.')
+    #     self.robot.ResumeMotion()
     def handle_error(self):
-        print('robot is in error state, correcting..')
-        self.robot.ResetError()
-        self.is_in_error = False
-        print('...error state corrected.')
-        self.robot.ResumeMotion()
+        print('robot is in error state, restarting...')
+        try:
+            # Disconnect the robot
+            self.robot.ClearMotion()
+            self.robot.WaitMotionCleared()
+            self.robot.Disconnect()
+
+            # Reconnect to the robot
+            self.robot.Connect(address='192.168.0.100')
+            self.robot.ClearMotion()
+            self.robot.WaitMotionCleared()
+            self.robot.ResumeMotion()
+            self.robot.ActivateAndHome()
+            # Provide all available real-time feedback messages
+            self.robot.SetRealTimeMonitoring('all')
+            # self.robot.SetBlending(80)
+            self.robot.SetJointAcc(15)
+            self.robot.SetJointVelLimit(80)
+
+            self.controller = RobotController(self.robot)
+            self.robot.WaitIdle(timeout=60)
+            print('ready.')
+
+            print('...robot successfully restarted.')
+        except Exception as e:
+            self.get_logger().error(f"Failed to restart the robot: {e}")
+            self.is_in_error = True
+
     
     def timed_data_logging_callback(self):
         # TODO:Feedback Data logging: to be implemented later
@@ -156,8 +185,8 @@ class MecademicRobotDriver(Node):
         self.robot.WaitMotionCleared()
         self.robot.ResumeMotion()
         self.robot.WaitHomed()
-        self.robot.SetJointAcc(100)
-        self.robot.SetJointVelLimit(145)
+        # self.robot.SetJointAcc(100)
+        # self.robot.SetJointVelLimit(145)
         # self.robot.SetJointVel(145)
         self.robot.MoveJoints(0,0,0,0,0,0)
         # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
@@ -213,7 +242,6 @@ class MecademicRobotDriver(Node):
     def joint_callback(self, joints):
         joint_positions_deg = [math.degrees(pos) for pos in joints.position]
         # self.controller.move_joints(joint_positions_deg)
-        print(joint_positions_deg)
         self.robot.MoveJoints(joint_positions_deg[0], joint_positions_deg[1], joint_positions_deg[2],
                               joint_positions_deg[3], joint_positions_deg[4], joint_positions_deg[5])
     
