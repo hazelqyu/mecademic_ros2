@@ -71,6 +71,23 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
 };
 
+class Dance : public BT::StatefulActionNode{
+public:
+    Dance(const std::string &name, const BT::NodeConfig &config);
+
+    //StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
+    static BT::PortsList providedPorts();
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
+};
+
 class Yawn : public BT::StatefulActionNode {
 public:
     Yawn(const std::string &name, const BT::NodeConfig &config);

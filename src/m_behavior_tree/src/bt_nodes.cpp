@@ -143,6 +143,51 @@ void Idle::onHalted(){
     RCLCPP_INFO(ros_node_->get_logger(), "Idle node halted. Published False to /start_idling.");
 }
 
+//Dance Node
+Dance::Dance(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config){
+
+    ros_node_ = rclcpp::Node::make_shared("dance_tree_node");
+    publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_dancing", 10);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Dance tree node initialized.");
+}
+
+// Ports definition
+BT::PortsList Dance::providedPorts(){
+    return {};
+}
+
+BT::NodeStatus Dance::onStart(){
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Dance node.");
+        return BT::NodeStatus::FAILURE;
+    }
+    while (publisher_->get_subscription_count() == 0) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_dancing...");
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
+    }
+    auto msg = std_msgs::msg::Bool();
+    msg.data = true;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Dance node started. Published True to /start_dancing.");
+    return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus Dance::onRunning(){
+    RCLCPP_INFO(ros_node_->get_logger(), "Dance node running.");
+    return BT::NodeStatus::RUNNING;
+}
+
+void Dance::onHalted(){
+    auto msg = std_msgs::msg::Bool();
+    msg.data = false;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Dance node halted. Published False to /start_dancing.");
+}
+
 
 //Yawn Node
 

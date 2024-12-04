@@ -24,6 +24,7 @@ setup(
             "track_face = btree.track_face:main",
             "idle = btree.idle:main",
             "asleep = btree.asleep:main",
+            "dance = btree.dance:main",
         ],
     },
 )
