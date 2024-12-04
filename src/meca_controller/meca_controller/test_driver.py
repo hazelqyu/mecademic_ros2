@@ -230,6 +230,10 @@ class MecademicRobotDriver(Node):
                 self.alert()
                 self.robot.WaitIdle()
                 response.success = True
+            if request.motion_name == "dance":
+                self.dance()
+                self.robot.WaitIdle()
+                response.success = True
             else:
                 self.get_logger().warn(f"Unknown motion: {request.motion_name}")
                 response.success = False
@@ -277,6 +281,22 @@ class MecademicRobotDriver(Node):
             self.robot.MoveJoints(0,math.degrees(sine_value),0,0,-math.degrees(sine_value),0)
             time.sleep(0.08)
     
+    def dance(self):
+        time_start = time.time()
+        duration = 0
+        while duration<10:
+            time_now = self.get_clock().now().nanoseconds * 1e-9
+            duration = time.time()-time_start
+            self.robot.MoveJoints(math.degrees(math.cos(2 * math.pi * 0.1 * time_now)),
+                                math.degrees(-0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5))),
+                                math.degrees(-0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1))),
+                                math.degrees(0.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5))),
+                                math.degrees(math.sin(2 * math.pi * 0.5 * (time_now-1.5))),
+                                0)
+            time.sleep(0.08)
+        self.robot.WaitIdle(timeout=60)
+            
+    
     def yawn(self):
         # time_start = time.time()
         # duration = 0
@@ -317,6 +337,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
+    # driver.dance()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
