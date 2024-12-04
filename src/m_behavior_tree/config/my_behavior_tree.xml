@@ -15,7 +15,13 @@
                     <TrackFace name="track_face"/>
                 </ReactiveFallback>
             </ReactiveSequence>
-            <Idle name="idle"/>
+            <ReactiveFallback>
+                <ReactiveSequence>
+                    <IsAwakeCondition name="is_awake_condition" topic_name="/is_awake"/>
+                    <Idle name="idle"/>
+                </ReactiveSequence>
+                <Asleep name="asleep"/>
+            </ReactiveFallback>
         </ReactiveFallback>
     </BehaviorTree>
 </root>

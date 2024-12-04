@@ -51,9 +51,53 @@ void TrackFace::onHalted(){
     RCLCPP_INFO(ros_node_->get_logger(), "TrackFace node halted. Published False to /start_tracking.");
 }
 
+// Asleep Node
+Asleep::Asleep(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config){
+
+    ros_node_ = rclcpp::Node::make_shared("asleep_tree_node");
+    publisher_ = ros_node_->create_publisher<std_msgs::msg::Bool>("/start_sleeping", 10);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Asleep tree node initialized.");
+}
+
+// Ports definition
+BT::PortsList Asleep::providedPorts(){
+    return {};
+}
+
+BT::NodeStatus Asleep::onStart(){
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Asleep node.");
+        return BT::NodeStatus::FAILURE;
+    }
+    // while (publisher_->get_subscription_count() == 0) {
+    //     RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_sleeping...");
+    //     rclcpp::sleep_for(std::chrono::milliseconds(100));
+    // }
+    auto msg = std_msgs::msg::Bool();
+    msg.data = true;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Asleep node started. Published True to /start_sleeping.");
+    return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus Asleep::onRunning(){
+    RCLCPP_INFO(ros_node_->get_logger(), "Asleep node running.");
+    return BT::NodeStatus::RUNNING;
+}
+
+void Asleep::onHalted(){
+    auto msg = std_msgs::msg::Bool();
+    msg.data = false;
+    publisher_->publish(msg);
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Asleep node halted. Published False to /start_sleeping.");
+}
+
 
 //Idle Node
-
 
 Idle::Idle(const std::string &name, const BT::NodeConfig &config)
     : BT::StatefulActionNode(name, config){
@@ -192,8 +236,32 @@ void Alert::onHalted() {
     motion_started_ = false; // Reset the motion_started_ flag
 }
 
-// IsDetectedCondition Node
+// IsAwakeCondition Node
+IsAwakeCondition::IsAwakeCondition(
+    const std::string& name, 
+    const BT::NodeConfig& config, 
+    const BT::RosNodeParams& params
+) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
 
+BT::NodeStatus IsAwakeCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
+
+    if (last_msg) {
+        last_msg_value_ = last_msg->data;
+    }
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsAwakeCondition"), 
+        "Plant Awake: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        last_msg_value_ ? "True" : "False"
+    );
+    return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+}
+
+BT::PortsList IsAwakeCondition::providedPorts() {
+    return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
+}
+
+// IsDetectedCondition Node
 
 IsDetectedCondition::IsDetectedCondition(
     const std::string& name, 

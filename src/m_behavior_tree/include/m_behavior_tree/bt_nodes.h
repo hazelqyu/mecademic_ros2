@@ -53,6 +53,23 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
 };
 
+class Asleep : public BT::StatefulActionNode{
+public:
+    Asleep(const std::string &name, const BT::NodeConfig &config);
+
+    //StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
+    static BT::PortsList providedPorts();
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
+};
+
 class Yawn : public BT::StatefulActionNode {
 public:
     Yawn(const std::string &name, const BT::NodeConfig &config);
@@ -91,8 +108,18 @@ private:
 };
 
 
+class IsAwakeCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
+public:
+    IsAwakeCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) override;
+    static BT::PortsList providedPorts();
 
-// Custom Condition Node: IsDetectedCondition
+private:
+    // Member variable to store the last message value
+    bool last_msg_value_;
+};
+
+
 class IsDetectedCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
 public:
     IsDetectedCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);

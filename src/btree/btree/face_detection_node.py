@@ -144,7 +144,6 @@ class FaceDetectorNode(Node):
         # Use YOLO for face detection
         bboxes, _ = self.yolo_detector.predict(rgb_frame, conf_thres=0.3, iou_thres=0.5)
         self.face_count = len(bboxes[0])
-        self.get_logger().info(f"bboxes:{self.face_count}")
         
         closest_face_depth = float('inf')
         closest_face = None

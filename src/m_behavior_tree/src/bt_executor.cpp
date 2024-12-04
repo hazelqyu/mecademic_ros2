@@ -24,6 +24,9 @@ public:
     params.nh = this->shared_from_this();  // Use shared_from_this to get a shared_ptr
 
     // Register BehaviorTree nodes
+    factory_.registerNodeType<IsAwakeCondition>("IsAwakeCondition", params);
+    factory_.registerNodeType<Asleep>("Asleep");
+
     factory_.registerNodeType<IsDetectedCondition>("IsDetectedCondition", params);
     factory_.registerNodeType<TrackFace>("TrackFace");
     factory_.registerNodeType<Idle>("Idle");
