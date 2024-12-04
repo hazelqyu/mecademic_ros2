@@ -7,6 +7,7 @@
 #include "behaviortree_ros2/bt_topic_pub_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "m_behavior_tree/service_helpers.h"
 
 
@@ -151,6 +152,17 @@ public:
 private:
     // Member variable to store the last message value
     bool last_msg_value_;
+};
+
+class IsHappyCondition : public BT::RosTopicSubNode<std_msgs::msg::String> {
+public:
+    IsHappyCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::String>& last_msg) override;
+    static BT::PortsList providedPorts();
+
+private:
+    // Member variable to store the last message value
+    std::string last_msg_value_;
 };
 
 #endif  // MY_BT_NODES_H

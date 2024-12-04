@@ -37,6 +37,8 @@ public:
     factory_.registerNodeType<IsAlertCondition>("IsAlertCondition", params);
     factory_.registerNodeType<Alert>("Alert");
 
+    factory_.registerNodeType<IsHappyCondition>("IsHappyCondition", params);
+
     // Load behavior tree from XML
     tree_ = factory_.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
 

@@ -339,6 +339,32 @@ BT::PortsList IsAlertCondition::providedPorts() {
     return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
 }
 
+//IsHappyConditionNode
+
+IsHappyCondition::IsHappyCondition(
+    const std::string& name, 
+    const BT::NodeConfig& config, 
+    const BT::RosNodeParams& params
+) : BT::RosTopicSubNode<std_msgs::msg::String>(name, config, params),last_msg_value_("") {}
+
+BT::NodeStatus IsHappyCondition::onTick(const std::shared_ptr<std_msgs::msg::String>& last_msg) {
+
+    if (last_msg) {
+        last_msg_value_ = last_msg->data;
+    }
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsHappyCondition"), 
+        "IsHappy: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        (last_msg_value_ == "Happy") ? "True" : "False"
+    );
+    return (last_msg_value_ == "Happy") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+}
+
+BT::PortsList IsHappyCondition::providedPorts() {
+    return BT::RosTopicSubNode<std_msgs::msg::String>::providedBasicPorts({});
+}
+
 bool callStateChangeService(rclcpp::Node::SharedPtr node) {
     
     auto client = node->create_client<custom_interfaces::srv::ClearMotion>("/state_change");

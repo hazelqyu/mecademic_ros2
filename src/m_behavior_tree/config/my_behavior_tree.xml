@@ -12,6 +12,10 @@
                         <IsAlertCondition name="is_alert_condition" topic_name="/is_alert"/>
                         <Alert name="alert"/>
                     </Sequence>
+                    <Sequence>
+                        <IsHappyCondition name="is_happy_condition" topic_name="/face_emotion"/>
+                        <!-- <Dance name="dance"/> -->
+                    </Sequence>
                     <TrackFace name="track_face"/>
                 </ReactiveFallback>
             </ReactiveSequence>
