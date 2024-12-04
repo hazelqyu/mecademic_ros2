@@ -23,4 +23,10 @@ def generate_launch_description():
             name='idle_node',
             output='screen'
         ),
+        Node(
+            package='btree',
+            executable='asleep',
+            name='asleep_node',
+            output='screen'
+        ),
     ])

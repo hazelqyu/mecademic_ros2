@@ -23,6 +23,7 @@ setup(
             "face_detection_node = btree.face_detection_node:main",
             "track_face = btree.track_face:main",
             "idle = btree.idle:main",
+            "asleep = btree.asleep:main",
         ],
     },
 )
