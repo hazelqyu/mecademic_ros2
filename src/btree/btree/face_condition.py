@@ -12,6 +12,7 @@ class FaceChecker:
         self.new_face_appear = False
         self.last_time_bored = None
         self.last_face_count = 0
+        self.face_lost_time = time.time()
 
     def check_face_bored(self, face_detected, face_position):
 
@@ -51,6 +52,15 @@ class FaceChecker:
 
         return self.is_still
 
+    def check_awake(self,face_detected):
+        if face_detected:
+            self.face_lost_time = time.time()
+            return True
+        elapsed_time = time.time()-self.face_lost_time
+        if elapsed_time < 10:
+            return True
+        return False
+
     def check_face_alert(self,face_count):
         if face_count > self.last_face_count:
             self.new_face_appear = True
@@ -58,7 +68,9 @@ class FaceChecker:
             self.new_face_appear = False
         self.last_face_count = face_count
         return self.new_face_appear
-            
+    
+
+        
     
     def _is_within_range(self, pos1, pos2):
 

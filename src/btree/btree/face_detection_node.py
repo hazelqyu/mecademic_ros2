@@ -67,6 +67,7 @@ class FaceDetectorNode(Node):
         self.check_frames_timer = self.create_timer(0.1, self.check_frames)
         
         # Configure publishers for btree
+        self.is_awake_publisher = self.create_publisher(Bool,'/is_awake',10)
         self.is_detected_publisher = self.create_publisher(Bool,'/is_detected',10)
         self.is_happy_publisher = self.create_publisher(Bool,'/is_happy',10)
         self.is_alert_publisher = self.create_publisher(Bool,'/is_alert',10)
@@ -74,6 +75,7 @@ class FaceDetectorNode(Node):
         self.face_publisher = self.create_publisher(JointState, '/face_position', 10)
         self.condition_publish_timer = self.create_timer(0.1,self.publish_condition)
         
+        self.is_awake = True
         self.is_detected = False
         self.is_happy = False
         self.is_alert = False
@@ -83,8 +85,13 @@ class FaceDetectorNode(Node):
     
     def publish_condition(self):
         # Make sure publish at least once before next check
+        self.is_awake = self.face_condition_checker.check_awake(self.is_detected)
         self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected, self.face_pos)
         self.is_alert = self.face_condition_checker.check_face_alert(self.face_count)
+        
+        is_awake_msg = Bool()
+        is_awake_msg.data = self.is_awake
+        self.is_awake_publisher.publish(is_awake_msg)
         
         is_detected_msg = Bool()
         is_detected_msg.data = self.is_detected
@@ -100,7 +107,8 @@ class FaceDetectorNode(Node):
         
         # self.get_logger().info(f"Face detected:{self.is_detected}")
         # self.get_logger().info(f"Face bored:{self.is_bored}")
-        self.get_logger().info(f"Face alert:{self.face_count},{self.is_alert}")
+        # self.get_logger().info(f"Face alert:{self.face_count},{self.is_alert}")
+        self.get_logger().info(f"Plant Awake:{self.is_awake}")
     
     def check_frames(self):
         # Check each required frame
