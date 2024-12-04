@@ -8,12 +8,11 @@ from cv_bridge import CvBridge,CvBridgeError
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
-# import mediapipe as mp
 import math
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
-from std_msgs.msg import Header,Bool 
+from std_msgs.msg import Header,Bool,String
 from btree.face_condition import FaceChecker
 from yoloface.face_detector import YoloDetector
 
@@ -56,6 +55,7 @@ class FaceDetectorNode(Node):
 
         # Define the emotion labels for FER2013 (7 classes)
         self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+        self.emotion = None
         # self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
@@ -69,7 +69,7 @@ class FaceDetectorNode(Node):
         # Configure publishers for btree
         self.is_awake_publisher = self.create_publisher(Bool,'/is_awake',10)
         self.is_detected_publisher = self.create_publisher(Bool,'/is_detected',10)
-        self.is_happy_publisher = self.create_publisher(Bool,'/is_happy',10)
+        self.emotion_publisher = self.create_publisher(String,'/face_emotion',10)
         self.is_alert_publisher = self.create_publisher(Bool,'/is_alert',10)
         self.is_bored_publisher = self.create_publisher(Bool,'/is_bored',10)
         self.face_publisher = self.create_publisher(JointState, '/face_position', 10)
@@ -77,9 +77,9 @@ class FaceDetectorNode(Node):
         
         self.is_awake = True
         self.is_detected = False
-        self.is_happy = False
         self.is_alert = False
         self.is_bored = False
+        self.emotion = ""
         self.face_count = 0
         self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05,time_cooldown=10)
     
@@ -105,6 +105,9 @@ class FaceDetectorNode(Node):
         is_alert_msg.data = self.is_alert
         self.is_alert_publisher.publish(is_alert_msg)
         
+        face_emotion_msg = String()
+        face_emotion_msg.data = self.emotion
+        self.emotion_publisher.publish(face_emotion_msg)
         # self.get_logger().info(f"Face detected:{self.is_detected}")
         # self.get_logger().info(f"Face bored:{self.is_bored}")
         # self.get_logger().info(f"Face alert:{self.face_count},{self.is_alert}")
@@ -160,7 +163,8 @@ class FaceDetectorNode(Node):
                     closest_face = (x1, y1, w, h, depth)
 
             if closest_face:
-                x, y, self.face_width, h, self.face_depth = closest_face
+                x, y, w, h, self.face_depth = closest_face
+                self.face_width = w
                 center_x = x + self.face_width // 2
                 center_y = y + h // 2
                 self.face_center = [center_x, center_y]
@@ -171,10 +175,27 @@ class FaceDetectorNode(Node):
                     self.face_pos = self.pos_transform(self.face_center, self.face_depth)
                     self.lookat(self.face_pos)
 
-                cv2.rectangle(frame, (x, y), (x + self.face_width, y + h), (255, 0, 0), 2)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
                 cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                
+                # Extract the face from the frame
+                face_image = frame[y:y+h, x:x+w]
 
+                # Recognize the emotion using the FER2013 model
+                self.emotion, confidence = self.recognize_expression(face_image)
+
+                # Only display the emotion and confidence if they are not None
+                if self.emotion and confidence is not None:
+                    # Draw the bounding box and emotion on the frame
+                    cv2.putText(frame, f'{self.emotion} ({confidence:.2f})', (x, y - 25),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (36, 255, 12), 2)
+                else:
+                    # Optionally, show a default message if no emotion is detected
+                    cv2.putText(frame, 'No emotion detected', (x, y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                
+                
         cv2.imshow('YOLO Facial Tracking', frame)
         cv2.waitKey(1)
         
