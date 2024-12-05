@@ -7,7 +7,8 @@ from sensor_msgs.msg import Image, JointState
 from cv_bridge import CvBridge,CvBridgeError
 import cv2
 import numpy as np
-from tensorflow.keras.models import load_model
+# from tensorflow.keras.models import load_model
+from deepface import DeepFace
 import math
 import tf2_ros
 import tf2_geometry_msgs
@@ -52,10 +53,10 @@ class FaceDetectorNode(Node):
         self.target_joint_state = [0,0,0,0,0,0]
         
         # Load the pre-trained FER2013 model (mini-XCEPTION trained on FER2013)
-        self.model = load_model('/home/andrek/ros2_ws/emotion _detection.keras')
+        # self.model = load_model('/home/andrek/ros2_ws/emotion _detection.keras')
 
         # Define the emotion labels for FER2013 (7 classes)
-        self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+        # self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
         self.emotion = None
         # self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
@@ -183,9 +184,12 @@ class FaceDetectorNode(Node):
                 face_image = frame[y:y+h, x:x+w]
 
                 # Recognize the emotion using the FER2013 model
-                self.emotion, confidence = self.recognize_expression(face_image)
+                emotion, confidence = self.recognize_expression(face_image)
+                
+                # only update the emotion when confidence level is greater than 0.5
+                self.emotion = emotion if confidence > 0.5 else ""
 
-                # Only display the emotion and confidence if they are not None
+                # # Only display the emotion and confidence if they are not None
                 if self.emotion and confidence is not None:
                     # Draw the bounding box and emotion on the frame
                     cv2.putText(frame, f'{self.emotion} ({confidence:.2f})', (x, y - 25),
@@ -199,26 +203,38 @@ class FaceDetectorNode(Node):
         cv2.imshow('YOLO Facial Tracking', frame)
         cv2.waitKey(1)
         
-    def preprocess_face(self,face_image):
-        if face_image is None or face_image.size == 0:
-            self.get_logger().error("Received an empty face image.")
-            return None
-        face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)  # Convert face image to grayscale
-        face_image = cv2.resize(face_image, (64, 64))  # Resize to 64x64 (FER2013 input size)
-        face_image = face_image.astype('float32') / 255  # Normalize pixel values to [0, 1]
-        face_image = np.expand_dims(face_image, axis=0)  # Add batch dimension
-        face_image = np.expand_dims(face_image, axis=-1)  # Add channel dimension (grayscale)
-        return face_image
+    # def preprocess_face(self,face_image):
+    #     if face_image is None or face_image.size == 0:
+    #         self.get_logger().error("Received an empty face image.")
+    #         return None
+    #     face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)  # Convert face image to grayscale
+    #     face_image = cv2.resize(face_image, (64, 64))  # Resize to 64x64 (FER2013 input size)
+    #     face_image = face_image.astype('float32') / 255  # Normalize pixel values to [0, 1]
+    #     face_image = np.expand_dims(face_image, axis=0)  # Add batch dimension
+    #     face_image = np.expand_dims(face_image, axis=-1)  # Add channel dimension (grayscale)
+    #     return face_image
 
-    # Function to recognize emotion using the FER2013 model
+    # # Function to recognize emotion using the FER2013 model
+    # def recognize_expression(self,face_image):
+    #     preprocessed_face = self.preprocess_face(face_image)
+    #     if preprocessed_face is None:
+    #         return None, 0.0  # Or handle the case as needed
+    #     predictions = self.model.predict(preprocessed_face)  # Get model predictions
+    #     emotion_index = np.argmax(predictions)  # Find the highest confidence index
+    #     return self.emotion_labels[emotion_index], np.max(predictions)  # Return emotion label and confidence
+
     def recognize_expression(self,face_image):
-        preprocessed_face = self.preprocess_face(face_image)
-        if preprocessed_face is None:
-            return None, 0.0  # Or handle the case as needed
-        predictions = self.model.predict(preprocessed_face)  # Get model predictions
-        emotion_index = np.argmax(predictions)  # Find the highest confidence index
-        return self.emotion_labels[emotion_index], np.max(predictions)  # Return emotion label and confidence
-
+        result = DeepFace.analyze(face_image, actions=['emotion'], enforce_detection=False)
+        try:
+            first_result = result[0]
+            emotion = first_result['dominant_emotion']
+            confidence = first_result['emotion'][emotion]
+        except Exception as e:
+            print(f"Error accessing predictions: {e}")
+            emotion = "Unknown"
+            confidence = 0.0
+        return emotion, confidence
+    
     def pos_transform(self,center,depth):
         # Calculate the 3D coordinates relative to the camera
         x = (center[0] - self.cx) * depth / self.focal_length

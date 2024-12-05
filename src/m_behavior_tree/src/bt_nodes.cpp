@@ -451,9 +451,9 @@ BT::NodeStatus IsHappyCondition::onTick(const std::shared_ptr<std_msgs::msg::Str
         rclcpp::get_logger("IsHappyCondition"), 
         "IsHappy: %s", 
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
-        (last_msg_value_ == "Happy") ? "True" : "False"
+        (last_msg_value_ == "happy") ? "True" : "False"
     );
-    return (last_msg_value_ == "Happy") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+    return (last_msg_value_ == "happy") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 BT::PortsList IsHappyCondition::providedPorts() {
@@ -477,9 +477,9 @@ BT::NodeStatus IsAngryCondition::onTick(const std::shared_ptr<std_msgs::msg::Str
         rclcpp::get_logger("IsAngryCondition"), 
         "IsAngry: %s", 
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
-        (last_msg_value_ == "Angry") ? "True" : "False"
+        (last_msg_value_ == "angry") ? "True" : "False"
     );
-    return (last_msg_value_ == "Angry") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+    return (last_msg_value_ == "angry") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 BT::PortsList IsAngryCondition::providedPorts() {

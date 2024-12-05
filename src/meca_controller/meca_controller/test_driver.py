@@ -36,9 +36,9 @@ class MecademicRobotDriver(Node):
         self.robot.ActivateAndHome()
         # Provide all available real-time feedback messages
         self.robot.SetRealTimeMonitoring('all')
-        self.robot.SetBlending(80)
-        self.robot.SetJointAcc(75)
-        self.robot.SetJointVelLimit(150)
+        # self.robot.SetBlending(80)
+        self.robot.SetJointAcc(15)
+        self.robot.SetJointVelLimit(80)
 
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
@@ -126,8 +126,8 @@ class MecademicRobotDriver(Node):
             # Provide all available real-time feedback messages
             self.robot.SetRealTimeMonitoring('all')
             # self.robot.SetBlending(80)
-            self.robot.SetJointAcc(75)
-            self.robot.SetJointVelLimit(150)
+            self.robot.SetJointAcc(30)
+            self.robot.SetJointVelLimit(80)
 
             self.controller = RobotController(self.robot)
             self.robot.WaitIdle(timeout=60)
@@ -321,8 +321,8 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointVelLimit(15)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 30, 0, 10, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(75)
-        self.robot.SetJointVelLimit(150)
+        self.robot.SetJointAcc(30)
+        self.robot.SetJointVelLimit(80)
         
     def alert(self):
         self.robot.SetJointVel(120)
@@ -337,6 +337,8 @@ class MecademicRobotDriver(Node):
         time.sleep(0.25)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 30, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
+        self.robot.SetJointAcc(30)
+        self.robot.SetJointVelLimit(80)
         
     def dash(self):
         self.robot.SetJointAcc(150)
@@ -346,7 +348,8 @@ class MecademicRobotDriver(Node):
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 30, -30, 0, -20, 0)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -15, 15, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(75)
+        self.robot.SetJointAcc(30)
+        self.robot.SetJointVelLimit(80)
         
     
 def main(args=None):
