@@ -129,6 +129,24 @@ private:
     bool motion_started_;
 };
 
+class Dash : public BT::StatefulActionNode {
+public:
+    Dash(const std::string &name, const BT::NodeConfig &config);
+
+    // StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
+    static BT::PortsList providedPorts();
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    MotionServiceClient motion_client_;
+    bool motion_started_;
+};
+
 
 class IsAwakeCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
 public:
@@ -178,6 +196,17 @@ private:
 class IsHappyCondition : public BT::RosTopicSubNode<std_msgs::msg::String> {
 public:
     IsHappyCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::String>& last_msg) override;
+    static BT::PortsList providedPorts();
+
+private:
+    // Member variable to store the last message value
+    std::string last_msg_value_;
+};
+
+class IsAngryCondition : public BT::RosTopicSubNode<std_msgs::msg::String> {
+public:
+    IsAngryCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
     BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::String>& last_msg) override;
     static BT::PortsList providedPorts();
 

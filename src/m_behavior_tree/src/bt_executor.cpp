@@ -41,6 +41,9 @@ public:
     factory_.registerNodeType<IsHappyCondition>("IsHappyCondition", params);
     factory_.registerNodeType<Dance>("Dance");
 
+    factory_.registerNodeType<IsAngryCondition>("IsAngryCondition", params);
+    factory_.registerNodeType<Dash>("Dash");
+
     // Load behavior tree from XML
     tree_ = factory_.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
 

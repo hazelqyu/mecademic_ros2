@@ -40,7 +40,7 @@ class IdleNode(Node):
             'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint'
         ]
         # idling
-        state_msg.position = [cosine_value, -0.2+0.5*sine_value, -0.45+sine_value, 0, -1.5*sine_value, 0]
+        state_msg.position = [cosine_value, -0.2+0.5*sine_value, -0.45+sine_value, 0, sine_value, 0]
         
         # sleeping
         # state_msg.position = [0, 0.3*sine_value, 0.69+0.5*sine_value, 0, -sine_value, 0]
