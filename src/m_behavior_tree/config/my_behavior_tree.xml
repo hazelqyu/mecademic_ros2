@@ -13,6 +13,7 @@
                         <Dance name="dance"/>
                     </Sequence>
                     <Sequence>
+                        <ExecutionCheck name="is_cooldown_condition" threshold = "10"/>
                         <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
                         <Yawn name="yawn"/>
                     </Sequence>

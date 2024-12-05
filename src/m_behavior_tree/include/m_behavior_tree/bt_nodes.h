@@ -9,6 +9,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "m_behavior_tree/service_helpers.h"
+#include "m_behavior_tree/execution_time_tracker.h"
 
 
 // Custom Action Node: TrackFace
@@ -184,5 +185,20 @@ private:
     // Member variable to store the last message value
     std::string last_msg_value_;
 };
+
+class ExecutionCheck : public BT::ConditionNode {
+public:
+    ExecutionCheck(const std::string& name, const BT::NodeConfig& config);
+
+    BT::NodeStatus tick() override;
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<int>("threshold")  // Threshold in seconds
+        };
+    }
+};
+
+
 
 #endif  // MY_BT_NODES_H

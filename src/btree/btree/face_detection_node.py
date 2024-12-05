@@ -87,7 +87,7 @@ class FaceDetectorNode(Node):
     def publish_condition(self):
         # Make sure publish at least once before next check
         self.is_awake = self.condition_checker.check_awake(self.is_detected)
-        self.is_bored = self.condition_checker.check_cooldown() and self.condition_checker.check_face_still(self.is_detected, self.face_pos)
+        self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.face_pos)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
         is_awake_msg = Bool()
         is_awake_msg.data = self.is_awake

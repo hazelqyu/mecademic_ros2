@@ -32,6 +32,7 @@ public:
     factory_.registerNodeType<Idle>("Idle");
 
     factory_.registerNodeType<IsBoredCondition>("IsBoredCondition", params);
+    factory_.registerNodeType<ExecutionCheck>("ExecutionCheck");
     factory_.registerNodeType<Yawn>("Yawn");
 
     factory_.registerNodeType<IsAlertCondition>("IsAlertCondition", params);

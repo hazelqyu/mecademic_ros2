@@ -302,7 +302,7 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
         self.robot.WaitIdle(timeout=60)
-        self.condition_checker.update_last_exe_time()
+        # self.condition_checker.update_last_exe_time()
             
     
     def yawn(self):
@@ -325,7 +325,7 @@ class MecademicRobotDriver(Node):
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
-        self.condition_checker.update_last_exe_time()
+        # self.condition_checker.update_last_exe_time()
         
     def alert(self):
         self.robot.SetJointVel(150)
@@ -342,7 +342,7 @@ class MecademicRobotDriver(Node):
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
-        self.condition_checker.update_last_exe_time()
+        # self.condition_checker.update_last_exe_time()
         
     
 def main(args=None):
