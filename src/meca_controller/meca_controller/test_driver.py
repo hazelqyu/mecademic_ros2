@@ -36,9 +36,9 @@ class MecademicRobotDriver(Node):
         self.robot.ActivateAndHome()
         # Provide all available real-time feedback messages
         self.robot.SetRealTimeMonitoring('all')
-        # self.robot.SetBlending(80)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(80)
+        self.robot.SetBlending(80)
+        self.robot.SetJointAcc(75)
+        self.robot.SetJointVelLimit(150)
 
         self.controller = RobotController(self.robot)
         self.robot.WaitIdle(timeout=60)
@@ -83,7 +83,6 @@ class MecademicRobotDriver(Node):
         
         self.joint_desired_state=[0,0,0,0,0,0] #radius
         self.joint_current_state = [0,0,0,0,0,0] #radius
-        self.condition_checker = ConditionChecker()
 
         
     def stop(self):
@@ -127,8 +126,8 @@ class MecademicRobotDriver(Node):
             # Provide all available real-time feedback messages
             self.robot.SetRealTimeMonitoring('all')
             # self.robot.SetBlending(80)
-            self.robot.SetJointAcc(15)
-            self.robot.SetJointVelLimit(80)
+            self.robot.SetJointAcc(75)
+            self.robot.SetJointVelLimit(150)
 
             self.controller = RobotController(self.robot)
             self.robot.WaitIdle(timeout=60)
@@ -284,9 +283,6 @@ class MecademicRobotDriver(Node):
             time.sleep(0.08)
     
     def dance(self):
-        # self.robot.SetJointAcc(80)
-        # self.robot.SetJointVelLimit(150)
-        self.robot.SetJointVel(120)
         time_start = time.time()
         duration = 0
         while duration<10:
@@ -299,10 +295,7 @@ class MecademicRobotDriver(Node):
                                 math.degrees(math.sin(2 * math.pi * 0.5 * (time_now-1.5))),
                                 0)
             time.sleep(0.08)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(80)
         self.robot.WaitIdle(timeout=60)
-        # self.condition_checker.update_last_exe_time()
             
     
     def yawn(self):
@@ -323,26 +316,32 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointVelLimit(15)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 30, 0, 10, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(40)
-        # self.condition_checker.update_last_exe_time()
+        self.robot.SetJointAcc(75)
+        self.robot.SetJointVelLimit(150)
         
     def alert(self):
-        self.robot.SetJointVel(150)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 45, 40, 0, 0)
+        self.robot.SetJointVel(120)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 30, 0, 0, 0)
+        self.robot.WaitIdle()
+        time.sleep(0.25)        
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 30, -40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 45, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 30, 40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 45, 40, 0, 0)
-        self.robot.WaitIdle()
-        time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 45, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 30, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(40)
-        # self.condition_checker.update_last_exe_time()
+        
+    def lunge(self):
+        self.robot.SetJointAcc(150)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -25, 25, 0, 0, 0)
+        self.robot.WaitIdle()
+        self.robot.SetJointVel(120)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 30, -30, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -15, 15, 0, 0, 0)
+        self.robot.WaitIdle(timeout=60)
+        self.robot.SetJointAcc(75)
         
     
 def main(args=None):
@@ -352,6 +351,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
+    driver.lunge()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

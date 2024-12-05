@@ -80,10 +80,3 @@ class ConditionChecker:
     
     def _is_within_range(self, pos1, pos2):
         return all(abs(p1 - p2) <= self.range_threshold for p1, p2 in zip(pos1, pos2))
-    
-    def check_cooldown(self):
-        if not self.last_execution_time:
-            return True
-        if time.time() - self.last_execution_time < self.time_cooldown:
-            return False
-        return True

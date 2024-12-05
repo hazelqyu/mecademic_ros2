@@ -27,6 +27,7 @@ class FaceTrackerNode(Node):
     def publish_command(self):
         self.get_logger().info("Publishing target face.")
         if self.target_face:
+            # TODO: add some base movement
             self.command_publisher.publish(self.target_face)
     
     def set_target(self,msg):
