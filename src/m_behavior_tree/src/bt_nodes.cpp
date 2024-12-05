@@ -71,10 +71,10 @@ BT::NodeStatus Asleep::onStart(){
         RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Asleep node.");
         return BT::NodeStatus::FAILURE;
     }
-    // while (publisher_->get_subscription_count() == 0) {
-    //     RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_sleeping...");
-    //     rclcpp::sleep_for(std::chrono::milliseconds(100));
-    // }
+    while (publisher_->get_subscription_count() == 0) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Waiting for subscriber to /start_sleeping...");
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
+    }
     auto msg = std_msgs::msg::Bool();
     msg.data = true;
     publisher_->publish(msg);

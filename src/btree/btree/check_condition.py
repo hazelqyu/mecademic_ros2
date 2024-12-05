@@ -1,20 +1,27 @@
 import time
 
-class FaceChecker:
-    def __init__(self, time_threshold=5, range_threshold=0.05, time_cooldown=10):
+class ConditionChecker:
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
 
-        self.time_threshold = time_threshold
-        self.range_threshold = range_threshold
-        self.time_cooldown = time_cooldown
+        self.time_threshold = 5
+        self.range_threshold = 0.05
+        self.time_cooldown = 10
         self.initial_position = None
         self.timer_start = None
         self.is_still = False
         self.new_face_appear = False
-        self.last_time_bored = None
+        self.last_execution_time = None
         self.last_face_count = 0
         self.face_lost_time = time.time()
 
-    def check_face_bored(self, face_detected, face_position):
+    def check_face_still(self, face_detected, face_position):
 
         if not face_detected:
             self.timer_start = time.time()
@@ -39,14 +46,13 @@ class FaceChecker:
         elapsed_time = time.time() - self.timer_start
 
         if elapsed_time >= self.time_threshold:
-            if self.last_time_bored:
-                interval_time = time.time() - self.last_time_bored
-                if interval_time < self.time_cooldown:
-                    self.is_still = False
-                    return False
-            # Update last_time_bored when boredom is detected
+            # if self.last_execution_time:
+            #     interval_time = time.time() - self.last_execution_time
+            #     if interval_time < self.time_cooldown:
+            #         self.is_still = False
+            #         return False
             self.is_still = True
-            self.last_time_bored = time.time()
+            # self.last_execution_time = time.time()
         else:
             self.is_still = False
 
@@ -61,7 +67,7 @@ class FaceChecker:
             return True
         return False
 
-    def check_face_alert(self,face_count):
+    def check_face_appear(self,face_count):
         if face_count > self.last_face_count:
             self.new_face_appear = True
         else:
@@ -69,9 +75,15 @@ class FaceChecker:
         self.last_face_count = face_count
         return self.new_face_appear
     
-
-        
+    def update_last_exe_time(self):
+        self.last_execution_time = time.time()
     
     def _is_within_range(self, pos1, pos2):
-
         return all(abs(p1 - p2) <= self.range_threshold for p1, p2 in zip(pos1, pos2))
+    
+    def check_cooldown(self):
+        if not self.last_execution_time:
+            return True
+        if time.time() - self.last_execution_time < self.time_cooldown:
+            return False
+        return True

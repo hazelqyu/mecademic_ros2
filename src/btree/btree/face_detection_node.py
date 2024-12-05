@@ -13,8 +13,9 @@ import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
 from std_msgs.msg import Header,Bool,String
-from btree.face_condition import FaceChecker
+from btree.check_condition import ConditionChecker
 from yoloface.face_detector import YoloDetector
+import time
 
 
 class FaceDetectorNode(Node):
@@ -81,14 +82,13 @@ class FaceDetectorNode(Node):
         self.is_bored = False
         self.emotion = ""
         self.face_count = 0
-        self.face_condition_checker = FaceChecker(time_threshold=5, range_threshold=0.05,time_cooldown=10)
+        self.condition_checker = ConditionChecker()
     
     def publish_condition(self):
         # Make sure publish at least once before next check
-        self.is_awake = self.face_condition_checker.check_awake(self.is_detected)
-        self.is_bored = self.face_condition_checker.check_face_bored(self.is_detected, self.face_pos)
-        self.is_alert = self.face_condition_checker.check_face_alert(self.face_count)
-        
+        self.is_awake = self.condition_checker.check_awake(self.is_detected)
+        self.is_bored = self.condition_checker.check_cooldown() and self.condition_checker.check_face_still(self.is_detected, self.face_pos)
+        self.is_alert = self.condition_checker.check_face_appear(self.face_count)
         is_awake_msg = Bool()
         is_awake_msg.data = self.is_awake
         self.is_awake_publisher.publish(is_awake_msg)

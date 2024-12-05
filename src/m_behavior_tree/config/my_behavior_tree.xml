@@ -5,16 +5,16 @@
                 <IsDetectedCondition name="is_detected_condition" topic_name="/is_detected"/>
                 <ReactiveFallback name="behavior_selector">
                     <Sequence>
-                        <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
-                        <Yawn name="yawn"/>
-                    </Sequence>
-                    <Sequence>
                         <IsAlertCondition name="is_alert_condition" topic_name="/is_alert"/>
                         <Alert name="alert"/>
                     </Sequence>
                     <Sequence>
                         <IsHappyCondition name="is_happy_condition" topic_name="/face_emotion"/>
                         <Dance name="dance"/>
+                    </Sequence>
+                    <Sequence>
+                        <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
+                        <Yawn name="yawn"/>
                     </Sequence>
                     <TrackFace name="track_face"/>
                 </ReactiveFallback>

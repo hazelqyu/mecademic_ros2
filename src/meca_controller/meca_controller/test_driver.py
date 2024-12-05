@@ -11,6 +11,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray, Bool
 import time
 import math
+from btree.check_condition import ConditionChecker
 
 
 def singleton(cls):
@@ -82,6 +83,7 @@ class MecademicRobotDriver(Node):
         
         self.joint_desired_state=[0,0,0,0,0,0] #radius
         self.joint_current_state = [0,0,0,0,0,0] #radius
+        self.condition_checker = ConditionChecker()
 
         
     def stop(self):
@@ -300,6 +302,7 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
         self.robot.WaitIdle(timeout=60)
+        self.condition_checker.update_last_exe_time()
             
     
     def yawn(self):
@@ -313,7 +316,6 @@ class MecademicRobotDriver(Node):
         #     time.sleep(0.1)
             
         # self.robot.WaitIdle(timeout=60)
-
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(25)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, -30, 0)
@@ -323,6 +325,7 @@ class MecademicRobotDriver(Node):
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
+        self.condition_checker.update_last_exe_time()
         
     def alert(self):
         self.robot.SetJointVel(150)
@@ -339,6 +342,7 @@ class MecademicRobotDriver(Node):
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(40)
+        self.condition_checker.update_last_exe_time()
         
     
 def main(args=None):
@@ -348,7 +352,6 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
-    driver.alert()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
