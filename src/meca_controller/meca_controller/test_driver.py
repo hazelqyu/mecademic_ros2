@@ -350,6 +350,17 @@ class MecademicRobotDriver(Node):
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(30)
         self.robot.SetJointVelLimit(80)
+    
+    def chomp(self):
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
+        
         
     
 def main(args=None):
@@ -359,6 +370,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
+    driver.chomp()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
