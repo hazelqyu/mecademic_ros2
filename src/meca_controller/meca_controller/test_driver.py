@@ -84,6 +84,11 @@ class MecademicRobotDriver(Node):
         self.joint_desired_state=[0,0,0,0,0,0] #radius
         self.joint_current_state = [0,0,0,0,0,0] #radius
 
+        self.newest_face_sub = self.create_subscription(JointState,'/newest_face_position',self.set_newest_face,10)
+        self.newest_face = None
+    
+    def set_newest_face(self,msg):
+        self.newest_face = [pos for pos in msg.position]
         
     def stop(self):
         try:

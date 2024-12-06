@@ -38,7 +38,7 @@ class FaceDetectorNode(Node):
         
         # Real-world width of the object in meters
         self.face_real_width = 0.2
-        self.closest_face_pos = None
+
         # self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.3)
         self.yolo_detector = YoloDetector(min_face=50, target_size=640, device='cpu')
         
@@ -47,6 +47,8 @@ class FaceDetectorNode(Node):
         self.next_face_id = 0
         self.closest_face = None
         self.newest_face = None
+        self.closest_face_pos = None
+        self.newest_face_pos = None
         
         # For threshold
         self.pre_yaw = None
@@ -69,7 +71,8 @@ class FaceDetectorNode(Node):
         self.emotion_publisher = self.create_publisher(String,'/face_emotion',10)
         self.is_alert_publisher = self.create_publisher(Bool,'/is_alert',10)
         self.is_bored_publisher = self.create_publisher(Bool,'/is_bored',10)
-        self.face_publisher = self.create_publisher(JointState, '/face_position', 10)
+        self.closest_face_publisher = self.create_publisher(JointState, '/face_position', 10)
+        self.newest_face_publisher = self.create_publisher(JointState, '/newest_face_position', 10)
         self.condition_publish_timer = self.create_timer(0.1,self.publish_condition)
         
         self.is_awake = True
@@ -85,6 +88,7 @@ class FaceDetectorNode(Node):
         self.is_awake = self.condition_checker.check_awake(self.is_detected)
         self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.closest_face_pos)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
+        self.get_logger().info(f"Alert:{self.is_alert},{self.face_count}")
         
         is_awake_msg = Bool()
         is_awake_msg.data = self.is_awake
@@ -105,7 +109,6 @@ class FaceDetectorNode(Node):
         face_emotion_msg = String()
         face_emotion_msg.data = self.emotion
         self.emotion_publisher.publish(face_emotion_msg)
-        self.get_logger().info(f"Plant Awake:{self.is_awake}")
     
     def check_frames(self):
         # Check each required frame
@@ -203,7 +206,7 @@ class FaceDetectorNode(Node):
                 closest_face_helper = FaceTransformHelper(self.closest_face,self.tf_buffer,logger=self)
                 self.closest_face_pos = closest_face_helper.pos_transform(self.get_clock().now().to_msg())
                 closest_face_target_joint_pos = closest_face_helper.compute_target_joint_position(self.closest_face_pos)
-                self.publish_joint_state(closest_face_target_joint_pos,self.face_publisher)
+                self.publish_joint_state(closest_face_target_joint_pos,self.closest_face_publisher)
                 
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 cv2.circle(frame, self.closest_face['center'], 5, (0, 255, 0), -1)
@@ -221,9 +224,13 @@ class FaceDetectorNode(Node):
                     cv2.putText(frame, 'No emotion detected', (x, y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             
-            # if self.newest_face:
-            #     (x_new, y_new, w_new, h_new), d_new = self.newest_face['bbox'],self.newest_face['depth']
-
+            if self.newest_face:
+                (x, y, w, h) = self.closest_face['bbox']
+                newest_face_helper = FaceTransformHelper(self.newest_face,self.tf_buffer,logger=self)
+                self.newest_face_pos = newest_face_helper.pos_transform(self.get_clock().now().to_msg())
+                newest_face_target_joint_pos = newest_face_helper.compute_target_joint_position(self.newest_face_pos)
+                self.publish_joint_state(newest_face_target_joint_pos,self.newest_face_publisher)
+                
                 
         cv2.imshow('YOLO Facial Tracking', frame)
         cv2.waitKey(1)
