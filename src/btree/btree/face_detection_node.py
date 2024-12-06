@@ -18,6 +18,7 @@ from btree.check_condition import ConditionChecker
 from yoloface.face_detector import YoloDetector
 import time
 from scipy.spatial.distance import euclidean
+from btree.transform_helper import FaceTransformHelper
 
 
 class FaceDetectorNode(Node):
@@ -34,8 +35,6 @@ class FaceDetectorNode(Node):
         horizontal_fov = 78  # Horizontal field of view in degrees
         image_width = 640  # Resolution width in pixels
         self.focal_length = image_width / (2 * math.tan(math.radians(horizontal_fov / 2)))
-        self.cx = 320
-        self.cy = 240
         
         # Real-world width of the object in meters
         self.face_real_width = 0.2
@@ -201,29 +200,24 @@ class FaceDetectorNode(Node):
                 (x, y, w, h) = self.closest_face['bbox']
                 self.is_detected = True
 
-                self.closest_face_pos = self.pos_transform(self.closest_face['center'], self.closest_face['depth'])
-                self.lookat(self.closest_face_pos)
-
+                closest_face_helper = FaceTransformHelper(self.closest_face,self.tf_buffer,logger=self)
+                self.closest_face_pos = closest_face_helper.pos_transform(self.get_clock().now().to_msg())
+                closest_face_target_joint_pos = closest_face_helper.compute_target_joint_position(self.closest_face_pos)
+                self.publish_joint_state(closest_face_target_joint_pos,self.face_publisher)
+                
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 cv2.circle(frame, self.closest_face['center'], 5, (0, 255, 0), -1)
                 cv2.putText(frame, f"Depth: {self.closest_face['depth']:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                 
-                # Extract the face from the frame
                 face_image = frame[y:y+h, x:x+w]
-
-                # Recognize the emotion using the FER2013 model
                 emotion, confidence = self.recognize_expression(face_image)
                 
-                # only update the emotion when confidence level is greater than 0.5
                 self.emotion = emotion if confidence > 0.5 else ""
 
-                # # Only display the emotion and confidence if they are not None
                 if self.emotion and confidence is not None:
-                    # Draw the bounding box and emotion on the frame
                     cv2.putText(frame, f'{self.emotion} ({confidence:.2f})', (x, y - 25),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (36, 255, 12), 2)
                 else:
-                    # Optionally, show a default message if no emotion is detected
                     cv2.putText(frame, 'No emotion detected', (x, y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             
@@ -246,84 +240,84 @@ class FaceDetectorNode(Node):
             confidence = 0.0
         return emotion, confidence
     
-    def pos_transform(self,center,depth):
-        # Calculate the 3D coordinates relative to the camera
-        x = (center[0] - self.cx) * depth / self.focal_length
-        y = (center[1] - self.cy) * depth / self.focal_length
-        z = depth
+    # def pos_transform(self,center,depth):
+    #     # Calculate the 3D coordinates relative to the camera
+    #     x = (center[0] - self.cx) * depth / self.focal_length
+    #     y = (center[1] - self.cy) * depth / self.focal_length
+    #     z = depth
     
-        # Create a PointStamped message in the camera frame
-        point_in_camera_frame = PointStamped()
-        point_in_camera_frame.header.frame_id = "camera_frame"
-        point_in_camera_frame.header.stamp = self.get_clock().now().to_msg()
-        point_in_camera_frame.point.x = x
-        point_in_camera_frame.point.y = y
-        point_in_camera_frame.point.z = z
+    #     # Create a PointStamped message in the camera frame
+    #     point_in_camera_frame = PointStamped()
+    #     point_in_camera_frame.header.frame_id = "camera_frame"
+    #     point_in_camera_frame.header.stamp = self.get_clock().now().to_msg()
+    #     point_in_camera_frame.point.x = x
+    #     point_in_camera_frame.point.y = y
+    #     point_in_camera_frame.point.z = z
         
-        try:
-            # Transform the point to the robot base frame
-            point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
+    #     try:
+    #         # Transform the point to the robot base frame
+    #         point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
 
-            target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
+    #         target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
 
-            return target_position
+    #         return target_position
 
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            self.get_logger().error(f"Transform error: {e}")
-            return None
+    #     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+    #         self.get_logger().error(f"Transform error: {e}")
+    #         return None
 
-    def lookat(self,target_position):
+    # def lookat(self,target_position):
 
-        joint1_direction = self.compute_direction("meca_axis_1_link",target_position)
-        joint3_direction = self.compute_direction("meca_axis_3_link",target_position)
-        joint5_direction = self.compute_direction("meca_axis_5_link",target_position)
-        if joint1_direction is None or joint3_direction is None or joint5_direction is None:
-            return  # Exit the function if the transform failed
+    #     joint1_direction = self.compute_direction("meca_axis_1_link",target_position)
+    #     joint3_direction = self.compute_direction("meca_axis_3_link",target_position)
+    #     joint5_direction = self.compute_direction("meca_axis_5_link",target_position)
+    #     if joint1_direction is None or joint3_direction is None or joint5_direction is None:
+    #         return  # Exit the function if the transform failed
         
-        yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
-        joint2_pitch = self.back_forth_movemont(self.closest_face['depth'])
-        joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0])-joint2_pitch # joint 3 will do the pitch
-        joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])-joint2_pitch
+    #     yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
+    #     joint2_pitch = self.back_forth_movemont(self.closest_face['depth'])
+    #     joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0])-joint2_pitch # joint 3 will do the pitch
+    #     joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])-joint2_pitch
         
-        percentage = 0.5
+    #     percentage = 0.5
         
-        movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
-        # Only update target_pos when it's greater than movement threshold
-        h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
-        v_movement = abs(joint3_pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
-        # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
+    #     movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
+    #     # Only update target_pos when it's greater than movement threshold
+    #     h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
+    #     v_movement = abs(joint3_pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
+    #     # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
         
-        if h_movement >= movement_threshold or v_movement>=movement_threshold:
-            target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
-            self.pre_yaw = yaw
-            self.pre_pitch = joint3_pitch 
-            self.publish_joint_state(target_joint_state)
+    #     if h_movement >= movement_threshold or v_movement>=movement_threshold:
+    #         target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
+    #         self.pre_yaw = yaw
+    #         self.pre_pitch = joint3_pitch 
+    #         self.publish_joint_state(target_joint_state)
     
-    def back_forth_movemont(self,depth) -> float:
-        joint2_pitch =  1.2-depth
-        return max(min(joint2_pitch, 1.2), -1.5)
+    # def back_forth_movemont(self,depth) -> float:
+    #     joint2_pitch =  1.2-depth
+    #     return max(min(joint2_pitch, 1.2), -1.5)
         
-    def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
-        try:
-            link_frame = self.tf_buffer.lookup_transform(
-                "meca_base_link",         # Target frame
-                link_name,       # Source frame
-                rclpy.time.Time(),        # Time (use the latest available transform)
-                timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
-            )
+    # def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
+    #     try:
+    #         link_frame = self.tf_buffer.lookup_transform(
+    #             "meca_base_link",         # Target frame
+    #             link_name,       # Source frame
+    #             rclpy.time.Time(),        # Time (use the latest available transform)
+    #             timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
+    #         )
             
-            link_position = np.array([link_frame.transform.translation.x, link_frame.transform.translation.y, link_frame.transform.translation.z])
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            self.get_logger().error(f"Transform error for joints: {e}")
-            link_position = None
+    #         link_position = np.array([link_frame.transform.translation.x, link_frame.transform.translation.y, link_frame.transform.translation.z])
+    #     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+    #         self.get_logger().error(f"Transform error for joints: {e}")
+    #         link_position = None
         
-        if link_position is None:
-            return None
+    #     if link_position is None:
+    #         return None
         
-        direction = target_position-link_position
-        return direction
+    #     direction = target_position-link_position
+    #     return direction
     
-    def publish_joint_state(self, target_joint_state):
+    def publish_joint_state(self, target_joint_state, publisher):
         state_msg = JointState()
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
@@ -332,7 +326,7 @@ class FaceDetectorNode(Node):
         state_msg.header.stamp = self.get_clock().now().to_msg()
 
         # Publish the joint state message
-        self.face_publisher.publish(state_msg)
+        publisher.publish(state_msg)
         self.get_logger().info("Joint state published")
    
  
