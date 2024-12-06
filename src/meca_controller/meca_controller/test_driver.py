@@ -320,6 +320,7 @@ class MecademicRobotDriver(Node):
     def alert(self):
         self.robot.SetJointVel(120)
         # self.robot.SetJointAcc(150)
+        # TODO: should face the new face
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 30, 0, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)        

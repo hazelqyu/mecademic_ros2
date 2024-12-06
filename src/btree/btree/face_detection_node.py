@@ -58,7 +58,6 @@ class FaceDetectorNode(Node):
         # Define the emotion labels for FER2013 (7 classes)
         # self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
         self.emotion = None
-        # self.face_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
         
         # Initialize TF buffer and listener
         self.frames = ["camera_frame", "meca_base_link", "meca_axis_1_link", "meca_axis_2_link","meca_axis_3_link",  "meca_axis_5_link"]
@@ -90,6 +89,7 @@ class FaceDetectorNode(Node):
         self.is_awake = self.condition_checker.check_awake(self.is_detected)
         self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.face_pos)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
+        
         is_awake_msg = Bool()
         is_awake_msg.data = self.is_awake
         self.is_awake_publisher.publish(is_awake_msg)
@@ -109,9 +109,6 @@ class FaceDetectorNode(Node):
         face_emotion_msg = String()
         face_emotion_msg.data = self.emotion
         self.emotion_publisher.publish(face_emotion_msg)
-        # self.get_logger().info(f"Face detected:{self.is_detected}")
-        # self.get_logger().info(f"Face bored:{self.is_bored}")
-        # self.get_logger().info(f"Face alert:{self.face_count},{self.is_alert}")
         self.get_logger().info(f"Plant Awake:{self.is_awake}")
     
     def check_frames(self):
