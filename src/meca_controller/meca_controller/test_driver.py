@@ -85,10 +85,10 @@ class MecademicRobotDriver(Node):
         self.joint_current_state = [0,0,0,0,0,0] #radius
 
         self.newest_face_sub = self.create_subscription(JointState,'/newest_face_position',self.set_newest_face,10)
-        self.newest_face = None
+        self.newest_face_deg = None
     
     def set_newest_face(self,msg):
-        self.newest_face = [pos for pos in msg.position]
+        self.newest_face_deg = [math.degrees(pos) for pos in msg.position]
         
     def stop(self):
         try:
@@ -288,7 +288,7 @@ class MecademicRobotDriver(Node):
         # self.robot.SetJointAcc(150)
         time_start = time.time()
         duration = 0
-        while duration<10:
+        while duration<5:
             time_now = self.get_clock().now().nanoseconds * 1e-9
             duration = time.time()-time_start
             self.robot.MoveJoints(math.degrees(math.cos(2 * math.pi * 0.1 * time_now)),
@@ -326,16 +326,17 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointVel(120)
         # self.robot.SetJointAcc(150)
         # TODO: should face the new face
-        self.robot.MoveJoints(math.degrees(self.newest_face[0]), -60, 30, 0, 0, 0)
+        self.robot.MoveJoints(self.newest_face_deg[0],self.newest_face_deg[1],self.newest_face_deg[2],self.newest_face_deg[3],self.newest_face_deg[4],self.newest_face_deg[5])
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 30, 0, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)        
-        self.robot.MoveJoints(math.degrees(self.newest_face[0])-10, -60, 30, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 30, -40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.newest_face[0])+10, -60, 30, 40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 30, 40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.newest_face[0]), -60, 30, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 30, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
@@ -352,14 +353,19 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointVelLimit(80)
     
     def chomp(self):
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 0, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 0, 0, 40, 0)
+        self.robot.SetJointVel(45)
+        # self.robot.SetJointAcc(150)
+        time_start = time.time()
+        duration = 0
+        while duration<10:
+            time_now = self.get_clock().now().nanoseconds * 1e-9
+            duration = time.time()-time_start
+            self.robot.MoveJoints(0,0,0,0,10,0)
+            self.robot.WaitIdle()
+            time.sleep(0.25)
+            self.robot.MoveJoints(0,0,0,0,-25,0)
+            self.robot.WaitIdle()
+            time.sleep(0.25)
         
         
     
@@ -370,6 +376,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
+    driver.chomp()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
