@@ -126,7 +126,7 @@ class MecademicRobotDriver(Node):
             # Provide all available real-time feedback messages
             self.robot.SetRealTimeMonitoring('all')
             # self.robot.SetBlending(80)
-            self.robot.SetJointAcc(30)
+            self.robot.SetJointAcc(15)
             self.robot.SetJointVelLimit(80)
 
             self.controller = RobotController(self.robot)
@@ -186,17 +186,7 @@ class MecademicRobotDriver(Node):
         self.robot.WaitMotionCleared()
         self.robot.ResumeMotion()
         self.robot.WaitHomed()
-        # self.robot.SetJointAcc(100)
-        # self.robot.SetJointVelLimit(145)
-        # self.robot.SetJointVel(145)
         self.robot.MoveJoints(0,0,0,0,0,0)
-        # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
-        # self.robot.MoveLin(200, 100, 300, 0, 90, 0)
-        # self.robot.MoveLin(200, 100, 100, 0, 90, 0)
-        # self.robot.MoveLin(200, -100, 100, 0, 90, 0)
-        # self.robot.MoveLin(200, -100, 300, 0, 90, 0)
-        # self.robot.MoveLin(200, 0, 300, 0, 90, 0)
-        # self.robot._set_eob(True)
         
     def send_command(self):
         joint_positions_deg = [math.degrees(pos) for pos in self.joint_desired_state]
@@ -213,6 +203,8 @@ class MecademicRobotDriver(Node):
             self.robot.ClearMotion()
             self.robot.WaitMotionCleared()
             self.robot.ResumeMotion()
+            self.robot.SetJointAcc(15)
+            self.robot.SetJointVelLimit(80)
             response.success = True
             self.get_logger().info("Motion buffer cleared")
         except Exception as e:
@@ -288,6 +280,7 @@ class MecademicRobotDriver(Node):
     
     def dance(self):
         self.robot.SetJointVel(45)
+        # self.robot.SetJointAcc(150)
         time_start = time.time()
         duration = 0
         while duration<10:
@@ -321,11 +314,12 @@ class MecademicRobotDriver(Node):
         self.robot.SetJointVelLimit(15)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, 30, 0, 10, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(30)
+        self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
         
     def alert(self):
         self.robot.SetJointVel(120)
+        # self.robot.SetJointAcc(150)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 30, 0, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)        
@@ -337,7 +331,7 @@ class MecademicRobotDriver(Node):
         time.sleep(0.25)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 30, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(30)
+        self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
         
     def dash(self):
@@ -348,7 +342,7 @@ class MecademicRobotDriver(Node):
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 30, -30, 0, -20, 0)
         self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -15, 15, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(30)
+        self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
     
     def chomp(self):
@@ -370,7 +364,6 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
-    driver.chomp()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

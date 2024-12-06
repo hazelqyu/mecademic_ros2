@@ -290,7 +290,7 @@ class FaceDetectorNode(Node):
     
     def back_forth_movemont(self,depth) -> float:
         joint2_pitch =  1.2-depth
-        return joint2_pitch
+        return max(min(joint2_pitch, 1.2), -1.5)
         
     def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
         try:
