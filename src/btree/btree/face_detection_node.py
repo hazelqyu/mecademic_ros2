@@ -17,6 +17,7 @@ from std_msgs.msg import Header,Bool,String
 from btree.check_condition import ConditionChecker
 from yoloface.face_detector import YoloDetector
 import time
+from scipy.spatial.distance import euclidean
 
 
 class FaceDetectorNode(Node):
@@ -38,25 +39,21 @@ class FaceDetectorNode(Node):
         
         # Real-world width of the object in meters
         self.face_real_width = 0.2
-        self.face_depth = None
-        self.face_width = 0.0
-        self.face_center = []
-        self.face_pos = None
+        self.closest_face_pos = None
         # self.mp_face_detection = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.3)
         self.yolo_detector = YoloDetector(min_face=50, target_size=640, device='cpu')
+        
+        # Tracked faces
+        self.previous_faces = []
+        self.next_face_id = 0
+        self.closest_face = None
+        self.newest_face = None
         
         # For threshold
         self.pre_yaw = None
         self.pre_pitch = None
         self.pre_joint2_pitch = None
         
-        self.target_joint_state = [0,0,0,0,0,0]
-        
-        # Load the pre-trained FER2013 model (mini-XCEPTION trained on FER2013)
-        # self.model = load_model('/home/andrek/ros2_ws/emotion _detection.keras')
-
-        # Define the emotion labels for FER2013 (7 classes)
-        # self.emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
         self.emotion = None
         
         # Initialize TF buffer and listener
@@ -87,7 +84,7 @@ class FaceDetectorNode(Node):
     def publish_condition(self):
         # Make sure publish at least once before next check
         self.is_awake = self.condition_checker.check_awake(self.is_detected)
-        self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.face_pos)
+        self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.closest_face_pos)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
         
         is_awake_msg = Bool()
@@ -146,36 +143,70 @@ class FaceDetectorNode(Node):
         bboxes, _ = self.yolo_detector.predict(rgb_frame, conf_thres=0.3, iou_thres=0.5)
         self.face_count = len(bboxes[0])
         
+        current_faces = []
+        MAX_DISTANCE_THRESHOLD = 50
         closest_face_depth = float('inf')
-        closest_face = None
         
         if bboxes[0]:  # If there are detected faces
             for bbox in bboxes[0]:
                 x1, y1, x2, y2 = bbox
                 w = x2 - x1
                 h = y2 - y1
+                center_x = x1 + w // 2
+                center_y = y1 + h // 2
                 depth = (self.face_real_width * self.focal_length) / w
+                
+                # Match current face with previously tracked faces
+                matched_face = None
+                for prev_face in self.previous_faces:
+                    prev_center = prev_face['center']
+                    distance = euclidean((center_x, center_y), prev_center)
+                    if distance < MAX_DISTANCE_THRESHOLD:
+                        matched_face = prev_face
+                        break
+
+                if matched_face:
+                    # Update the matched face's attributes
+                    matched_face['bbox'] = (x1, y1, w, h)
+                    matched_face['center'] = (center_x, center_y)
+                    matched_face['depth'] = depth
+                    current_faces.append(matched_face)
+                else:
+                    # Assign a new ID to the new face
+                    new_face = {
+                        'id': self.next_face_id,
+                        'bbox': (x1, y1, w, h),
+                        'center': (center_x, center_y),
+                        'depth': depth
+                    }
+                    self.next_face_id += 1
+                    current_faces.append(new_face)
+                    self.newest_face = new_face  # Update the newest face
 
                 if depth < closest_face_depth:
                     closest_face_depth = depth
-                    closest_face = (x1, y1, w, h, depth)
+                    self.closest_face = matched_face or new_face
 
-            if closest_face:
-                x, y, w, h, self.face_depth = closest_face
-                self.face_width = w
-                center_x = x + self.face_width // 2
-                center_y = y + h // 2
-                self.face_center = [center_x, center_y]
+                    # Update the tracked faces
+            
+            self.previous_faces = current_faces
+
+            # Publish is_detected status
+            self.is_detected = len(current_faces) > 0
+            is_detected_msg = Bool()
+            is_detected_msg.data = self.is_detected
+            self.is_detected_publisher.publish(is_detected_msg)
+            
+            if self.closest_face:
+                (x, y, w, h) = self.closest_face['bbox']
                 self.is_detected = True
 
-                if self.face_depth and self.face_center:
-                    self.get_logger().info(f"Face Center in camera frame: {self.face_center}")
-                    self.face_pos = self.pos_transform(self.face_center, self.face_depth)
-                    self.lookat(self.face_pos)
+                self.closest_face_pos = self.pos_transform(self.closest_face['center'], self.closest_face['depth'])
+                self.lookat(self.closest_face_pos)
 
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
-                cv2.putText(frame, f"Depth: {self.face_depth:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                cv2.circle(frame, self.closest_face['center'], 5, (0, 255, 0), -1)
+                cv2.putText(frame, f"Depth: {self.closest_face['depth']:.2f} m", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                 
                 # Extract the face from the frame
                 face_image = frame[y:y+h, x:x+w]
@@ -195,31 +226,14 @@ class FaceDetectorNode(Node):
                     # Optionally, show a default message if no emotion is detected
                     cv2.putText(frame, 'No emotion detected', (x, y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-                
+            
+            # if self.newest_face:
+            #     (x_new, y_new, w_new, h_new), d_new = self.newest_face['bbox'],self.newest_face['depth']
+
                 
         cv2.imshow('YOLO Facial Tracking', frame)
         cv2.waitKey(1)
         
-    # def preprocess_face(self,face_image):
-    #     if face_image is None or face_image.size == 0:
-    #         self.get_logger().error("Received an empty face image.")
-    #         return None
-    #     face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)  # Convert face image to grayscale
-    #     face_image = cv2.resize(face_image, (64, 64))  # Resize to 64x64 (FER2013 input size)
-    #     face_image = face_image.astype('float32') / 255  # Normalize pixel values to [0, 1]
-    #     face_image = np.expand_dims(face_image, axis=0)  # Add batch dimension
-    #     face_image = np.expand_dims(face_image, axis=-1)  # Add channel dimension (grayscale)
-    #     return face_image
-
-    # # Function to recognize emotion using the FER2013 model
-    # def recognize_expression(self,face_image):
-    #     preprocessed_face = self.preprocess_face(face_image)
-    #     if preprocessed_face is None:
-    #         return None, 0.0  # Or handle the case as needed
-    #     predictions = self.model.predict(preprocessed_face)  # Get model predictions
-    #     emotion_index = np.argmax(predictions)  # Find the highest confidence index
-    #     return self.emotion_labels[emotion_index], np.max(predictions)  # Return emotion label and confidence
-
     def recognize_expression(self,face_image):
         result = DeepFace.analyze(face_image, actions=['emotion'], enforce_detection=False)
         try:
@@ -267,7 +281,7 @@ class FaceDetectorNode(Node):
             return  # Exit the function if the transform failed
         
         yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
-        joint2_pitch = self.back_forth_movemont(self.face_depth)
+        joint2_pitch = self.back_forth_movemont(self.closest_face['depth'])
         joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0])-joint2_pitch # joint 3 will do the pitch
         joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])-joint2_pitch
         
@@ -280,10 +294,10 @@ class FaceDetectorNode(Node):
         # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
         
         if h_movement >= movement_threshold or v_movement>=movement_threshold:
-            self.target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
+            target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
             self.pre_yaw = yaw
             self.pre_pitch = joint3_pitch 
-            self.publish_joint_state()
+            self.publish_joint_state(target_joint_state)
     
     def back_forth_movemont(self,depth) -> float:
         joint2_pitch =  1.2-depth
@@ -309,12 +323,12 @@ class FaceDetectorNode(Node):
         direction = target_position-link_position
         return direction
     
-    def publish_joint_state(self):
+    def publish_joint_state(self, target_joint_state):
         state_msg = JointState()
         state_msg.header = Header()
         state_msg.name = ['meca_axis_1_joint', 'meca_axis_2_joint', 'meca_axis_3_joint', 
                         'meca_axis_4_joint', 'meca_axis_5_joint', 'meca_axis_6_joint']
-        state_msg.position = self.target_joint_state
+        state_msg.position = target_joint_state
         state_msg.header.stamp = self.get_clock().now().to_msg()
 
         # Publish the joint state message
