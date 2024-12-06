@@ -189,15 +189,8 @@ class FaceDetectorNode(Node):
                     closest_face_depth = depth
                     self.closest_face = matched_face or new_face
 
-                    # Update the tracked faces
             
             self.previous_faces = current_faces
-
-            # Publish is_detected status
-            self.is_detected = len(current_faces) > 0
-            is_detected_msg = Bool()
-            is_detected_msg.data = self.is_detected
-            self.is_detected_publisher.publish(is_detected_msg)
             
             if self.closest_face:
                 (x, y, w, h) = self.closest_face['bbox']
