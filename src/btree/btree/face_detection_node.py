@@ -156,7 +156,7 @@ class FaceDetectorNode(Node):
                 h = y2 - y1
                 center_x = x1 + w // 2
                 center_y = y1 + h // 2
-                depth = (self.face_real_width * self.focal_length) / w
+                depth = (self.face_real_width * self.focal_length) / h
                 
                 # Match current face with previously tracked faces
                 matched_face = None
@@ -239,83 +239,6 @@ class FaceDetectorNode(Node):
             emotion = "Unknown"
             confidence = 0.0
         return emotion, confidence
-    
-    # def pos_transform(self,center,depth):
-    #     # Calculate the 3D coordinates relative to the camera
-    #     x = (center[0] - self.cx) * depth / self.focal_length
-    #     y = (center[1] - self.cy) * depth / self.focal_length
-    #     z = depth
-    
-    #     # Create a PointStamped message in the camera frame
-    #     point_in_camera_frame = PointStamped()
-    #     point_in_camera_frame.header.frame_id = "camera_frame"
-    #     point_in_camera_frame.header.stamp = self.get_clock().now().to_msg()
-    #     point_in_camera_frame.point.x = x
-    #     point_in_camera_frame.point.y = y
-    #     point_in_camera_frame.point.z = z
-        
-    #     try:
-    #         # Transform the point to the robot base frame
-    #         point_in_base_frame = self.tf_buffer.transform(point_in_camera_frame, "meca_base_link", rclpy.duration.Duration(seconds=1.0))
-
-    #         target_position = np.array([point_in_base_frame.point.x, point_in_base_frame.point.y, point_in_base_frame.point.z])
-
-    #         return target_position
-
-    #     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-    #         self.get_logger().error(f"Transform error: {e}")
-    #         return None
-
-    # def lookat(self,target_position):
-
-    #     joint1_direction = self.compute_direction("meca_axis_1_link",target_position)
-    #     joint3_direction = self.compute_direction("meca_axis_3_link",target_position)
-    #     joint5_direction = self.compute_direction("meca_axis_5_link",target_position)
-    #     if joint1_direction is None or joint3_direction is None or joint5_direction is None:
-    #         return  # Exit the function if the transform failed
-        
-    #     yaw = np.arctan2(joint1_direction[1],joint1_direction[0]) # joint 1 will do the yaw
-    #     joint2_pitch = self.back_forth_movemont(self.closest_face['depth'])
-    #     joint3_pitch = np.arctan2(joint3_direction[2],joint3_direction[0])-joint2_pitch # joint 3 will do the pitch
-    #     joint5_pitch = np.arctan2(joint5_direction[2],joint5_direction[0])-joint2_pitch
-        
-    #     percentage = 0.5
-        
-    #     movement_threshold = 0.1 # This threshold is in radius, about 5.73 degree
-    #     # Only update target_pos when it's greater than movement threshold
-    #     h_movement = abs(yaw - self.pre_yaw) if self.pre_yaw is not None else movement_threshold + 1
-    #     v_movement = abs(joint3_pitch-self.pre_pitch) if self.pre_pitch is not None else movement_threshold + 1
-    #     # depth_movement = abs(joint2_pitch-self.pre_joint2_pitch) if self.pre_joint2_pitch is not None else movement_threshold +1
-        
-    #     if h_movement >= movement_threshold or v_movement>=movement_threshold:
-    #         target_joint_state = [yaw, -joint2_pitch, -joint3_pitch*percentage, 0, -joint5_pitch*(1-percentage), 0]
-    #         self.pre_yaw = yaw
-    #         self.pre_pitch = joint3_pitch 
-    #         self.publish_joint_state(target_joint_state)
-    
-    # def back_forth_movemont(self,depth) -> float:
-    #     joint2_pitch =  1.2-depth
-    #     return max(min(joint2_pitch, 1.2), -1.5)
-        
-    # def compute_direction(self,link_name:str,target_position) -> Optional[np.ndarray]:
-    #     try:
-    #         link_frame = self.tf_buffer.lookup_transform(
-    #             "meca_base_link",         # Target frame
-    #             link_name,       # Source frame
-    #             rclpy.time.Time(),        # Time (use the latest available transform)
-    #             timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout
-    #         )
-            
-    #         link_position = np.array([link_frame.transform.translation.x, link_frame.transform.translation.y, link_frame.transform.translation.z])
-    #     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-    #         self.get_logger().error(f"Transform error for joints: {e}")
-    #         link_position = None
-        
-    #     if link_position is None:
-    #         return None
-        
-    #     direction = target_position-link_position
-    #     return direction
     
     def publish_joint_state(self, target_joint_state, publisher):
         state_msg = JointState()

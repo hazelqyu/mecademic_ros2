@@ -63,7 +63,7 @@ class ConditionChecker:
             self.face_lost_time = time.time()
             return True
         elapsed_time = time.time()-self.face_lost_time
-        if elapsed_time < 10:
+        if elapsed_time < 15:
             return True
         return False
 

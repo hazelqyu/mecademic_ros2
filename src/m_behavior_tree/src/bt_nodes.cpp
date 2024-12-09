@@ -477,9 +477,9 @@ BT::NodeStatus IsAngryCondition::onTick(const std::shared_ptr<std_msgs::msg::Str
         rclcpp::get_logger("IsAngryCondition"), 
         "IsAngry: %s", 
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
-        (last_msg_value_ == "surprise") ? "True" : "False"
+        (last_msg_value_ == "angry") ? "True" : "False"
     );
-    return (last_msg_value_ == "surprise") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+    return (last_msg_value_ == "angry") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 BT::PortsList IsAngryCondition::providedPorts() {

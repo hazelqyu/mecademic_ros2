@@ -41,7 +41,7 @@ class AsleepNode(Node):
         ]
 
         # sleeping
-        state_msg.position = [0, 0.3*sine_value, 0.69+0.5*sine_value, 0, -sine_value, 0]
+        state_msg.position = [0, 0.6+0.6*sine_value, 0.12+0.6*sine_value, 0, -sine_value, 0]
         
         state_msg.header.stamp = self.get_clock().now().to_msg()
         self.command_publisher.publish(state_msg)
