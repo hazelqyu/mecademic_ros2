@@ -375,6 +375,34 @@ class MecademicRobotDriver(Node):
             self.robot.MoveJoints(0,0,0,0,-25,0)
             self.robot.WaitIdle()
             time.sleep(0.25)
+    
+    def dance2(self):
+        if self.music_player.songs[2].is_paused_state():
+                self.music_player.unpause_song(2)
+        else:
+                self.music_player.play_song(2)
+        self.robot.SetJointVel(90)
+        # self.robot.SetJointAcc(150)
+        time_start = time.time()
+        duration = 0
+        amplitude_j2 = 30  # Amplitude for joint 2
+        amplitude_j3 = 40  # Amplitude for joint 3
+        amplitude_j5 = 20
+        amplitude_j4 = 20
+        frequency = 2 
+        while duration<10:
+            time_now = self.get_clock().now().nanoseconds * 1e-9
+            duration = time.time()-time_start
+            # Calculate joint positions based on sine wave
+            j2 = -10+amplitude_j2 * math.sin(2 * math.pi * frequency * time_now)  # Sine wave for joint 2
+            j3 = -10+amplitude_j3 * math.sin(2 * math.pi * frequency * time_now + math.pi)
+            j4 = amplitude_j4 * math.sin(2 * math.pi * 4 * time_now + math.pi)
+            j5 = amplitude_j5 * math.sin(2*math.pi*frequency*time_now+ math.pi)
+            self.robot.MoveJoints(0, j2, j3, j4, j5, 0)
+            time.sleep(0.08)
+        self.robot.WaitIdle(timeout=60)
+        self.music_player.pause_song(2)
+        
         
         
     
@@ -385,7 +413,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
-    # driver.dance()
+    driver.dance2()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
