@@ -12,6 +12,7 @@ from std_msgs.msg import Float64MultiArray, Bool
 import time
 import math
 from btree.check_condition import ConditionChecker
+from btree.playsong import MusicPlayer
 
 
 def singleton(cls):
@@ -86,6 +87,8 @@ class MecademicRobotDriver(Node):
 
         self.newest_face_sub = self.create_subscription(JointState,'/newest_face_position',self.set_newest_face,10)
         self.newest_face_deg = None
+        
+        self.music_player = MusicPlayer()
     
     def set_newest_face(self,msg):
         self.newest_face_deg = [math.degrees(pos) for pos in msg.position]
@@ -284,6 +287,10 @@ class MecademicRobotDriver(Node):
             time.sleep(0.08)
     
     def dance(self):
+        if self.music_player.songs[2].is_paused_state():
+                self.music_player.unpause_song(2)
+        else:
+                self.music_player.play_song(2)
         self.robot.SetJointVel(45)
         # self.robot.SetJointAcc(150)
         time_start = time.time()
@@ -300,6 +307,7 @@ class MecademicRobotDriver(Node):
                                 0)
             time.sleep(0.08)
         self.robot.WaitIdle(timeout=60)
+        self.music_player.pause_song(2)
             
     
     def yawn(self):
