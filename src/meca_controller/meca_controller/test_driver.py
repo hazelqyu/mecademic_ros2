@@ -14,6 +14,7 @@ import math
 from btree.check_condition import ConditionChecker
 from btree.playsong import MusicPlayer
 import random
+from meca_controller.robot_motion import RobotMotion
 
 
 def singleton(cls):
@@ -90,6 +91,8 @@ class MecademicRobotDriver(Node):
         self.newest_face_deg = None
         
         self.music_player = MusicPlayer()
+        self.motion = RobotMotion(self.robot, self.music_player, logger=self.get_logger())
+
     
     def set_newest_face(self,msg):
         self.newest_face_deg = [math.degrees(pos) for pos in msg.position]
@@ -112,12 +115,6 @@ class MecademicRobotDriver(Node):
         self.robot.ResumeMotion()
         self.stop()
     
-    # def handle_error(self):
-    #     print('robot is in error state, correcting..')
-    #     self.robot.ResetError()
-    #     self.is_in_error = False
-    #     print('...error state corrected.')
-    #     self.robot.ResumeMotion()
     def handle_error(self):
         print('robot is in error state, restarting...')
         try:
@@ -225,26 +222,26 @@ class MecademicRobotDriver(Node):
         try:
             self.get_logger().info(f"Executing motion:{request.motion_name}")
             if request.motion_name == "yawn":
-                self.yawn()
+                self.motion.yawn(current_joint_1=math.degrees(self.joint_current_state[0]))
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "alert":
-                self.alert()
+                self.motion.alert(current_joint_1=math.degrees(self.joint_current_state[0]),newest_face_deg=self.newest_face_deg)
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "dance":
                 if random.random() < 0.5:
-                    self.dance2()
+                    self.motion.dance2()
                 else:
-                    self.dance()
+                    self.motion.dance()
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "dash":
-                self.dash()
+                self.motion.dash(current_joint_1=math.degrees(self.joint_current_state[0]))
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "chomp":
-                self.chomp()
+                self.motion.chomp(current_joint_1=math.degrees(self.joint_current_state[0]))
                 self.robot.WaitIdle()
                 response.success = True
             else:
@@ -294,119 +291,109 @@ class MecademicRobotDriver(Node):
             self.robot.MoveJoints(0,math.degrees(sine_value),0,0,-math.degrees(sine_value),0)
             time.sleep(0.08)
     
-    def dance(self):
-        if self.music_player.songs[2].is_paused_state():
-                self.music_player.unpause_song(2)
-        else:
-                self.music_player.play_song(2)
-        self.robot.SetJointVel(45)
-        # self.robot.SetJointAcc(150)
-        time_start = time.time()
-        duration = 0
-        while duration<7.5:
-            time_now = self.get_clock().now().nanoseconds * 1e-9
-            duration = time.time()-time_start
-            self.robot.MoveJoints(math.degrees(math.cos(2 * math.pi * 0.1 * time_now)),
-                                math.degrees(-0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5))),
-                                math.degrees(-0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1))),
-                                math.degrees(2.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5))),
-                                # 0,
-                                math.degrees(0.3*math.sin(2 * math.pi * 0.5 * (time_now-1.5))),
-                                0)
-            time.sleep(0.08)
-        self.robot.WaitIdle(timeout=60)
-        self.music_player.pause_song(2)
+    # def dance(self):
+    #     if self.music_player.songs[2].is_paused_state():
+    #             self.music_player.unpause_song(2)
+    #     else:
+    #             self.music_player.play_song(2)
+    #     self.robot.SetJointVel(45)
+    #     # self.robot.SetJointAcc(150)
+    #     time_start = time.time()
+    #     duration = 0
+    #     while duration<7.5:
+    #         time_now = self.get_clock().now().nanoseconds * 1e-9
+    #         duration = time.time()-time_start
+    #         self.robot.MoveJoints(math.degrees(math.cos(2 * math.pi * 0.1 * time_now)),
+    #                             math.degrees(-0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5))),
+    #                             math.degrees(-0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1))),
+    #                             math.degrees(2.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5))),
+    #                             # 0,
+    #                             math.degrees(0.3*math.sin(2 * math.pi * 0.5 * (time_now-1.5))),
+    #                             0)
+    #         time.sleep(0.08)
+    #     self.robot.WaitIdle(timeout=60)
+    #     self.music_player.pause_song(2)
             
     
-    def yawn(self):
-        # time_start = time.time()
-        # duration = 0
-        # fre = 1/5
-        # while duration < 5:
-        #     duration = time.time()-time_start
-        #     sine_value = -45+(-45) *math.sin(2*math.pi *fre*duration)
-        #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, sine_value, 0, 0.4*sine_value, 0)
-        #     time.sleep(0.1)
-            
-        # self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, -35, 0)
-        self.robot.SetJointAcc(7.5)
-        self.robot.SetJointVelLimit(15)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 20, 20, 0, 30, 0)
-        self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(80)
+    # def yawn(self):
+    #     self.robot.SetJointAcc(15)
+    #     self.robot.SetJointVelLimit(25)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 0, -90, 0, -35, 0)
+    #     self.robot.SetJointAcc(7.5)
+    #     self.robot.SetJointVelLimit(15)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 20, 20, 0, 30, 0)
+    #     self.robot.WaitIdle(timeout=60)
+    #     self.robot.SetJointAcc(15)
+    #     self.robot.SetJointVelLimit(80)
         
-    def alert(self):
-        self.robot.SetJointVel(120)
-        # self.robot.SetJointAcc(150)
-        # TODO: should face the new face
-        self.robot.MoveJoints(self.newest_face_deg[0],self.newest_face_deg[1],self.newest_face_deg[2],self.newest_face_deg[3],self.newest_face_deg[4],self.newest_face_deg[5])
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
-        self.robot.WaitIdle()
-        time.sleep(0.25)        
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 20, -40, 0, 0)
-        self.robot.WaitIdle()
-        time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 20, 40, 0, 0)
-        self.robot.WaitIdle()
-        time.sleep(0.25)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
-        self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(80)
+    # def alert(self):
+    #     self.robot.SetJointVel(120)
+    #     # self.robot.SetJointAcc(150)
+    #     # TODO: should face the new face
+    #     self.robot.MoveJoints(self.newest_face_deg[0],self.newest_face_deg[1],self.newest_face_deg[2],self.newest_face_deg[3],self.newest_face_deg[4],self.newest_face_deg[5])
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
+    #     self.robot.WaitIdle()
+    #     time.sleep(0.25)        
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 20, -40, 0, 0)
+    #     self.robot.WaitIdle()
+    #     time.sleep(0.25)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 20, 40, 0, 0)
+    #     self.robot.WaitIdle()
+    #     time.sleep(0.25)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
+    #     self.robot.WaitIdle(timeout=60)
+    #     self.robot.SetJointAcc(15)
+    #     self.robot.SetJointVelLimit(80)
         
-    def dash(self):
-        self.robot.SetJointAcc(150)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -40, 25, 0, 30, 0)
-        self.robot.WaitIdle()
-        self.robot.SetJointVel(120)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 40, -30, 0, -35, 0)
-        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -40, 25, 0, 30, 0)
-        self.robot.WaitIdle(timeout=60)
-        self.robot.SetJointAcc(15)
-        self.robot.SetJointVelLimit(80)
+    # def dash(self):
+    #     self.robot.SetJointAcc(150)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -40, 25, 0, 30, 0)
+    #     self.robot.WaitIdle()
+    #     self.robot.SetJointVel(120)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), 40, -30, 0, -35, 0)
+    #     self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -40, 25, 0, 30, 0)
+    #     self.robot.WaitIdle(timeout=60)
+    #     self.robot.SetJointAcc(15)
+    #     self.robot.SetJointVelLimit(80)
     
-    def chomp(self):
-        self.robot.SetJointVel(45)
-        # self.robot.SetJointAcc(150)
-        time_start = time.time()
-        duration = 0
-        while duration<8:
-            time_now = self.get_clock().now().nanoseconds * 1e-9
-            duration = time.time()-time_start
-            self.robot.MoveJoints(0,-50,-10,0,30 * math.sin(2*math.pi*2*time_now+ math.pi),0)
-            time.sleep(0.08)
+    # def chomp(self):
+    #     self.robot.SetJointVel(45)
+    #     # self.robot.SetJointAcc(150)
+    #     time_start = time.time()
+    #     duration = 0
+    #     while duration<8:
+    #         time_now = self.get_clock().now().nanoseconds * 1e-9
+    #         duration = time.time()-time_start
+    #         self.robot.MoveJoints(0,-50,-10,0,30 * math.sin(2*math.pi*2*time_now+ math.pi),0)
+    #         time.sleep(0.08)
 
     
-    def dance2(self):
-        if self.music_player.songs[2].is_paused_state():
-                self.music_player.unpause_song(2)
-        else:
-                self.music_player.play_song(2)
-        self.robot.SetJointVel(90)
-        # self.robot.SetJointAcc(150)
-        time_start = time.time()
-        duration = 0
-        amplitude_j2 = 30  # Amplitude for joint 2
-        amplitude_j3 = 40  # Amplitude for joint 3
-        amplitude_j5 = 20
-        amplitude_j4 = 20
-        frequency = 2 
-        while duration<10:
-            time_now = self.get_clock().now().nanoseconds * 1e-9
-            duration = time.time()-time_start
-            # Calculate joint positions based on sine wave
-            j2 = -10+amplitude_j2 * math.sin(2 * math.pi * frequency * time_now)  # Sine wave for joint 2
-            j3 = -10+amplitude_j3 * math.sin(2 * math.pi * frequency * time_now + math.pi)
-            j4 = amplitude_j4 * math.sin(2 * math.pi * 4 * time_now + math.pi)
-            j5 = amplitude_j5 * math.sin(2*math.pi*frequency*time_now+ math.pi)
-            self.robot.MoveJoints(0, j2, j3, j4, j5, 0)
-            time.sleep(0.08)
-        self.robot.WaitIdle(timeout=60)
-        self.music_player.pause_song(2)
+    # def dance2(self):
+    #     if self.music_player.songs[2].is_paused_state():
+    #             self.music_player.unpause_song(2)
+    #     else:
+    #             self.music_player.play_song(2)
+    #     self.robot.SetJointVel(90)
+    #     # self.robot.SetJointAcc(150)
+    #     time_start = time.time()
+    #     duration = 0
+    #     amplitude_j2 = 30  # Amplitude for joint 2
+    #     amplitude_j3 = 40  # Amplitude for joint 3
+    #     amplitude_j5 = 20
+    #     amplitude_j4 = 20
+    #     frequency = 2 
+    #     while duration<10:
+    #         time_now = self.get_clock().now().nanoseconds * 1e-9
+    #         duration = time.time()-time_start
+    #         # Calculate joint positions based on sine wave
+    #         j2 = -10+amplitude_j2 * math.sin(2 * math.pi * frequency * time_now)  # Sine wave for joint 2
+    #         j3 = -10+amplitude_j3 * math.sin(2 * math.pi * frequency * time_now + math.pi)
+    #         j4 = amplitude_j4 * math.sin(2 * math.pi * 4 * time_now + math.pi)
+    #         j5 = amplitude_j5 * math.sin(2*math.pi*frequency*time_now+ math.pi)
+    #         self.robot.MoveJoints(0, j2, j3, j4, j5, 0)
+    #         time.sleep(0.08)
+    #     self.robot.WaitIdle(timeout=60)
+    #     self.music_player.pause_song(2)
         
         
         
