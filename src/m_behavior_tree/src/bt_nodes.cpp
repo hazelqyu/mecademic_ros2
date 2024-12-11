@@ -331,28 +331,28 @@ void Alert::onHalted() {
     motion_started_ = false; // Reset the motion_started_ flag
 }
 
-// IsAwakeCondition Node
-IsAwakeCondition::IsAwakeCondition(
+// IsScanningCondition Node
+IsScanningCondition::IsScanningCondition(
     const std::string& name, 
     const BT::NodeConfig& config, 
     const BT::RosNodeParams& params
 ) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
 
-BT::NodeStatus IsAwakeCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
+BT::NodeStatus IsScanningCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
 
     if (last_msg) {
         last_msg_value_ = last_msg->data;
     }
     RCLCPP_INFO(
-        rclcpp::get_logger("IsAwakeCondition"), 
-        "Plant Awake: %s", 
+        rclcpp::get_logger("IsScanningCondition"), 
+        "Plant Scanning: %s", 
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
         last_msg_value_ ? "True" : "False"
     );
     return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
-BT::PortsList IsAwakeCondition::providedPorts() {
+BT::PortsList IsScanningCondition::providedPorts() {
     return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
 }
 
@@ -479,7 +479,10 @@ BT::NodeStatus IsAngryCondition::onTick(const std::shared_ptr<std_msgs::msg::Str
         // last_msg ? (last_msg->data ? "True" : "False") : "null"
         (last_msg_value_ == "angry") ? "True" : "False"
     );
-    return (last_msg_value_ == "angry") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+    // return (last_msg_value_ == "angry") ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+    return ((last_msg_value_ == "angry") || 
+            (last_msg_value_ == "surprise")) ? 
+           BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 BT::PortsList IsAngryCondition::providedPorts() {

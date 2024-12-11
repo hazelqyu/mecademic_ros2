@@ -148,9 +148,9 @@ private:
 };
 
 
-class IsAwakeCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
+class IsScanningCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
 public:
-    IsAwakeCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    IsScanningCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
     BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) override;
     static BT::PortsList providedPorts();
 

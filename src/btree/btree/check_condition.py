@@ -58,7 +58,7 @@ class ConditionChecker:
 
         return self.is_still
 
-    def check_awake(self,face_detected):
+    def check_scanning(self,face_detected):
         if face_detected:
             self.face_lost_time = time.time()
             return True

@@ -6,6 +6,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header, Bool,Float64MultiArray
 import math
 import time
+from btree.playsong import MusicPlayer
 # from meca_controller.test_driver import MecademicRobotDriver
 
 class AsleepNode(Node):
@@ -16,21 +17,27 @@ class AsleepNode(Node):
         self.command_publisher = self.create_publisher(JointState, '/mecademic_robot_joint', 10)
 
         self.timer = None # A timer to publish command
+        self.music_player = MusicPlayer()
 
     def start_sleeping_callback(self, msg):
         
         if msg.data == True and not self.timer:
             self.get_logger().info("Starting asleep motion.")
             self.timer = self.create_timer(0.05, self.publish_command)
+            if self.music_player.songs[1].is_paused_state():
+                self.music_player.unpause_song(1)
+            else:
+                self.music_player.play_song(1)
 
         if msg.data == False:
             if self.timer:
                 self.timer.cancel()
                 self.timer = None
+                self.music_player.pause_song(1)
 
     def publish_command(self):
         time_now = self.get_clock().now().nanoseconds * 1e-9
-        sine_value = 0.05 * math.sin(2 * math.pi * 0.5 * time_now)
+        sine_value = 0.05 * math.sin(2 * math.pi * 0.25 * time_now)
         cosine_value = 0.5 * math.sin(2 * math.pi * 0.15 * time_now)
 
         state_msg = JointState()

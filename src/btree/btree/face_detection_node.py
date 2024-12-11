@@ -66,7 +66,7 @@ class FaceDetectorNode(Node):
         self.check_frames_timer = self.create_timer(0.1, self.check_frames)
         
         # Configure publishers for btree
-        self.is_awake_publisher = self.create_publisher(Bool,'/is_awake',10)
+        self.is_scanning_publisher = self.create_publisher(Bool,'/is_scanning',10)
         self.is_detected_publisher = self.create_publisher(Bool,'/is_detected',10)
         self.emotion_publisher = self.create_publisher(String,'/face_emotion',10)
         self.is_alert_publisher = self.create_publisher(Bool,'/is_alert',10)
@@ -75,7 +75,7 @@ class FaceDetectorNode(Node):
         self.newest_face_publisher = self.create_publisher(JointState, '/newest_face_position', 10)
         self.condition_publish_timer = self.create_timer(0.1,self.publish_condition)
         
-        self.is_awake = True
+        self.is_scanning = True
         self.is_detected = False
         self.is_alert = False
         self.is_bored = False
@@ -85,14 +85,14 @@ class FaceDetectorNode(Node):
     
     def publish_condition(self):
         # Make sure publish at least once before next check
-        self.is_awake = self.condition_checker.check_awake(self.is_detected)
+        self.is_scanning = self.condition_checker.check_scanning(self.is_detected)
         self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.closest_face_pos)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
         self.get_logger().info(f"Alert:{self.is_alert},{self.face_count}")
         
-        is_awake_msg = Bool()
-        is_awake_msg.data = self.is_awake
-        self.is_awake_publisher.publish(is_awake_msg)
+        is_scanning_msg = Bool()
+        is_scanning_msg.data = self.is_scanning
+        self.is_scanning_publisher.publish(is_scanning_msg)
         
         is_detected_msg = Bool()
         is_detected_msg.data = self.is_detected

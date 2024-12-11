@@ -28,7 +28,7 @@
             </ReactiveSequence>
             <ReactiveFallback>
                 <ReactiveSequence>
-                    <IsAwakeCondition name="is_awake_condition" topic_name="/is_awake"/>
+                    <IsScanningCondition name="is_scanning_condition" topic_name="/is_scanning"/>
                     <Idle name="idle"/>
                 </ReactiveSequence>
                 <Asleep name="asleep"/>

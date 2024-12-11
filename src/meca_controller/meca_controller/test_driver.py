@@ -13,6 +13,7 @@ import time
 import math
 from btree.check_condition import ConditionChecker
 from btree.playsong import MusicPlayer
+import random
 
 
 def singleton(cls):
@@ -232,7 +233,10 @@ class MecademicRobotDriver(Node):
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "dance":
-                self.dance()
+                if random.random() < 0.5:
+                    self.dance2()
+                else:
+                    self.dance()
                 self.robot.WaitIdle()
                 response.success = True
             elif request.motion_name == "dash":
@@ -413,7 +417,7 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
-    driver.dance2()
+    # driver.dance2()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)
