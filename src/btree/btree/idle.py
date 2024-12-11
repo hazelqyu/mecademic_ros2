@@ -6,7 +6,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header, Bool,Float64MultiArray
 import math
 import time
-# from meca_controller.test_driver import MecademicRobotDriver
+from meca_controller.robot_motion import RobotMotion
 
 class IdleNode(Node):
     def __init__(self):
@@ -41,17 +41,7 @@ class IdleNode(Node):
         ]
         # idling
         state_msg.position = [cosine_value, -0.2+0.5*sine_value, -0.45+sine_value, 0, sine_value, 0]
-        
-        # sleeping
-        # state_msg.position = [0, 0.3*sine_value, 0.69+0.5*sine_value, 0, -sine_value, 0]
-        
-        # dancing
-        # state_msg.position = [math.cos(2 * math.pi * 0.1 * time_now),
-        #                       -0.2+0.5*math.sin(2 * math.pi * 0.5 * (time_now-0.5)),
-        #                       -0.45+0.5*math.sin(2 * math.pi * 0.5 * (time_now-1)),
-        #                       0.5*math.sin(2 * math.pi * 0.1 * (time_now-1.5)),
-        #                       math.sin(2 * math.pi * 0.5 * (time_now-1.5)),
-        #                       0]
+
         state_msg.header.stamp = self.get_clock().now().to_msg()
         self.command_publisher.publish(state_msg)
         

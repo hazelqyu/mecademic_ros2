@@ -10,6 +10,11 @@ class RobotMotion:
         self.music_player = music_player
         self.logger = logger
     
+    def idle(self,time_now):
+        sine_value = 0.05 * math.sin(2 * math.pi * 0.5 * time_now)
+        cosine_value = 0.5 * math.sin(2 * math.pi * 0.15 * time_now)
+        return [cosine_value, -0.2+0.5*sine_value, -0.45+sine_value, 0, sine_value, 0]
+    
     def dance(self):
         if self.music_player.songs[2].is_paused_state():
                 self.music_player.unpause_song(2)
@@ -83,7 +88,6 @@ class RobotMotion:
             duration = time_now-time_start
             self.robot.MoveJoints(current_joint_1,-50,-10,0,30 * math.sin(2*math.pi*2*time_now+ math.pi),0)
             time.sleep(0.08)
-
     
     def dance2(self):
         if self.music_player.songs[2].is_paused_state():
