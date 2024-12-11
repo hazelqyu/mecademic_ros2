@@ -19,6 +19,7 @@ from yoloface.face_detector import YoloDetector
 import time
 from scipy.spatial.distance import euclidean
 from btree.transform_helper import FaceTransformHelper
+from collections import deque
 
 
 class FaceDetectorNode(Node):
@@ -82,6 +83,10 @@ class FaceDetectorNode(Node):
         self.emotion = ""
         self.face_count = 0
         self.condition_checker = ConditionChecker()
+        
+        self.emotion_buffer = deque()  # Store (timestamp, emotion)
+        self.buffer_duration = 2.0  # Sliding window size in seconds
+        self.majority_threshold = 0.75  # Threshold for majority detection
     
     def publish_condition(self):
         # Make sure publish at least once before next check
@@ -189,7 +194,14 @@ class FaceDetectorNode(Node):
                     closest_face_depth = depth
                     self.closest_face = matched_face or new_face
 
-            
+            # Update `self.newest_face` attributes if still in current_faces
+            if self.newest_face:
+                for face in current_faces:
+                    if face['id'] == self.newest_face['id']:
+                        self.newest_face['bbox'] = face['bbox']
+                        self.newest_face['center'] = face['center']
+                        self.newest_face['depth'] = face['depth']
+                        break
             self.previous_faces = current_faces
             
             if self.closest_face:
@@ -218,7 +230,7 @@ class FaceDetectorNode(Node):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             
             if self.newest_face:
-                (x, y, w, h) = self.closest_face['bbox']
+                (x, y, w, h) = self.newest_face['bbox']
                 newest_face_helper = FaceTransformHelper(self.newest_face,self.tf_buffer,logger=self)
                 self.newest_face_pos = newest_face_helper.pos_transform(self.get_clock().now().to_msg())
                 newest_face_target_joint_pos = newest_face_helper.compute_target_joint_position(self.newest_face_pos)
@@ -238,7 +250,38 @@ class FaceDetectorNode(Node):
             print(f"Error accessing predictions: {e}")
             emotion = "Unknown"
             confidence = 0.0
-        return emotion, confidence
+        
+        # Update the emotion buffer
+        self.update_emotion_buffer(emotion)
+
+        # Get the stable emotion based on the buffer
+        stable_emotion = self.get_stable_emotion()
+
+        return stable_emotion, confidence
+    
+    def update_emotion_buffer(self, emotion):
+        # Add the current emotion with a timestamp
+        current_time = time.time()
+        self.emotion_buffer.append((current_time, emotion))
+
+        # Remove old entries outside the buffer duration
+        while self.emotion_buffer and (current_time - self.emotion_buffer[0][0] > self.buffer_duration):
+            self.emotion_buffer.popleft()
+    
+    def get_stable_emotion(self):
+        # Count occurrences of each emotion in the buffer
+        emotion_count = {}
+        for _, emotion in self.emotion_buffer:
+            emotion_count[emotion] = emotion_count.get(emotion, 0) + 1
+
+        # Find the majority emotion
+        total_emotions = len(self.emotion_buffer)
+        for emotion, count in emotion_count.items():
+            if count / total_emotions >= self.majority_threshold:
+                return emotion
+
+        # Return "Unknown" if no emotion meets the threshold
+        return "Unknown"
     
     def publish_joint_state(self, target_joint_state, publisher):
         state_msg = JointState()
