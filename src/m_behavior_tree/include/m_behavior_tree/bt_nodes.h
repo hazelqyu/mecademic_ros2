@@ -223,6 +223,19 @@ public:
 
     static BT::PortsList providedPorts() {
         return {
+            BT::InputPort<std::string>("node_name"),
+            BT::InputPort<int>("threshold")  // Threshold in seconds
+        };
+    }
+};
+class GlobalExecutionCheck : public BT::ConditionNode {
+public:
+    GlobalExecutionCheck(const std::string& name, const BT::NodeConfig& config);
+
+    BT::NodeStatus tick() override;
+
+    static BT::PortsList providedPorts() {
+        return {
             BT::InputPort<int>("threshold")  // Threshold in seconds
         };
     }

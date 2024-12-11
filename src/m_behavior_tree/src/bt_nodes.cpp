@@ -172,7 +172,7 @@ BT::NodeStatus Dance::onStart() {
 }
 
 BT::NodeStatus Dance::onRunning() {
-    ExecutionTimeTracker::getInstance().updateLastExecutionTime();
+    ExecutionTimeTracker::getInstance().updateLastExecutionTime("Dance");
     // Check if the service is complete
     if (motion_client_.isServiceComplete()) {
         RCLCPP_INFO(ros_node_->get_logger(), "Dance motion completed successfully.");
@@ -219,7 +219,7 @@ BT::NodeStatus Dash::onStart() {
 }
 
 BT::NodeStatus Dash::onRunning() {
-    ExecutionTimeTracker::getInstance().updateLastExecutionTime();
+    ExecutionTimeTracker::getInstance().updateLastExecutionTime("Dash");
     // Check if the service is complete
     if (motion_client_.isServiceComplete()) {
         RCLCPP_INFO(ros_node_->get_logger(), "Dash motion completed successfully.");
@@ -267,7 +267,7 @@ BT::NodeStatus Yawn::onStart() {
 }
 
 BT::NodeStatus Yawn::onRunning() {
-    ExecutionTimeTracker::getInstance().updateLastExecutionTime();
+    ExecutionTimeTracker::getInstance().updateLastExecutionTime("Yawn");
     // Check if the service is complete
     if (motion_client_.isServiceComplete()) {
         RCLCPP_INFO(ros_node_->get_logger(), "Yawn motion completed successfully.");
@@ -314,7 +314,7 @@ BT::NodeStatus Alert::onStart() {
 }
 
 BT::NodeStatus Alert::onRunning() {
-    ExecutionTimeTracker::getInstance().updateLastExecutionTime();
+    ExecutionTimeTracker::getInstance().updateLastExecutionTime("Alert");
     // Check if the service is complete
     if (motion_client_.isServiceComplete()) {
         RCLCPP_INFO(ros_node_->get_logger(), "Alert motion completed successfully.");
@@ -495,13 +495,14 @@ ExecutionCheck::ExecutionCheck(const std::string& name, const BT::NodeConfig& co
     : BT::ConditionNode(name, config) {}
 
 BT::NodeStatus ExecutionCheck::tick() {
+    std::string node_name;
     int threshold;
-    if (!getInput("threshold", threshold)) {
-        throw BT::RuntimeError("Missing required input port [threshold]");
+    if (!getInput("node_name", node_name) || !getInput("threshold", threshold)) {
+        throw BT::RuntimeError("Missing required input ports [node_name] or [threshold]");
     }
 
     auto& tracker = ExecutionTimeTracker::getInstance();
-    auto last_execution_time = tracker.getLastExecutionTime();
+    auto last_execution_time = tracker.getLastExecutionTime(node_name);
     auto now = std::chrono::steady_clock::now();
 
     if (last_execution_time == std::chrono::steady_clock::time_point::min()) {
@@ -510,6 +511,33 @@ BT::NodeStatus ExecutionCheck::tick() {
     }
 
     auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(now - last_execution_time).count();
+    if (elapsed_time > threshold) {
+        return BT::NodeStatus::SUCCESS;
+    } else {
+        return BT::NodeStatus::FAILURE;
+    }
+}
+
+//GlobalExecutionCheck
+GlobalExecutionCheck::GlobalExecutionCheck(const std::string& name, const BT::NodeConfig& config)
+    : BT::ConditionNode(name, config) {}
+
+BT::NodeStatus GlobalExecutionCheck::tick() {
+    int threshold;
+    if (!getInput("threshold", threshold)) {
+        throw BT::RuntimeError("Missing required input port [threshold]");
+    }
+
+    auto& tracker = ExecutionTimeTracker::getInstance();
+    auto global_last_execution_time = tracker.getGlobalLastExecutionTime();
+    auto now = std::chrono::steady_clock::now();
+
+    if (global_last_execution_time == std::chrono::steady_clock::time_point::min()) {
+        // No execution time recorded globally; assume timeout has passed
+        return BT::NodeStatus::SUCCESS;
+    }
+
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(now - global_last_execution_time).count();
     if (elapsed_time > threshold) {
         return BT::NodeStatus::SUCCESS;
     } else {

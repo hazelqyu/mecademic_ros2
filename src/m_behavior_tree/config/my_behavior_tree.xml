@@ -9,17 +9,17 @@
                         <Alert name="alert"/>
                     </Sequence>
                     <Sequence>
-                        <ExecutionCheck name="is_cooldown_condition" threshold = "10"/>
+                        <ExecutionCheck name="is_cooldown_condition" node_name="Dance" threshold = "30"/>
                         <IsHappyCondition name="is_happy_condition" topic_name="/face_emotion"/>
                         <Dance name="dance"/>
                     </Sequence>
                     <Sequence>
-                        <ExecutionCheck name="is_cooldown_condition" threshold = "10"/>
+                        <ExecutionCheck name="is_cooldown_condition" node_name="Dash" threshold = "30"/>
                         <IsAngryCondition name="is_angry_condition" topic_name="/face_emotion"/>
                         <Dash name="dash"/>
                     </Sequence>
                     <Sequence>
-                        <ExecutionCheck name="is_cooldown_condition" threshold = "10"/>
+                        <GlobalExecutionCheck threshold="10"/>
                         <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
                         <Yawn name="yawn"/>
                     </Sequence>

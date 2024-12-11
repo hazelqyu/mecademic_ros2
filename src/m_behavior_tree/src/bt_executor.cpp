@@ -32,7 +32,6 @@ public:
     factory_.registerNodeType<Idle>("Idle");
 
     factory_.registerNodeType<IsBoredCondition>("IsBoredCondition", params);
-    factory_.registerNodeType<ExecutionCheck>("ExecutionCheck");
     factory_.registerNodeType<Yawn>("Yawn");
 
     factory_.registerNodeType<IsAlertCondition>("IsAlertCondition", params);
@@ -43,6 +42,9 @@ public:
 
     factory_.registerNodeType<IsAngryCondition>("IsAngryCondition", params);
     factory_.registerNodeType<Dash>("Dash");
+
+    factory_.registerNodeType<ExecutionCheck>("ExecutionCheck");
+    factory_.registerNodeType<GlobalExecutionCheck>("GlobalExecutionCheck");
 
     // Load behavior tree from XML
     tree_ = factory_.createTreeFromFile("/home/andrek/ros2_ws/src/m_behavior_tree/config/my_behavior_tree.xml");
