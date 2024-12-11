@@ -93,7 +93,6 @@ class MecademicRobotDriver(Node):
     
     def set_newest_face(self,msg):
         self.newest_face_deg = [math.degrees(pos) for pos in msg.position]
-        self.get_logger().info(f"update newest face{self.newest_face_deg}")
         
     def stop(self):
         try:
@@ -341,16 +340,16 @@ class MecademicRobotDriver(Node):
         # self.robot.SetJointAcc(150)
         # TODO: should face the new face
         self.robot.MoveJoints(self.newest_face_deg[0],self.newest_face_deg[1],self.newest_face_deg[2],self.newest_face_deg[3],self.newest_face_deg[4],self.newest_face_deg[5])
-        self.robot.MoveJoints(self.newest_face_deg[0], -60, 20, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)        
-        self.robot.MoveJoints(self.newest_face_deg[0]-10, -60, 20, -40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])-10, -60, 20, -40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(self.newest_face_deg[0]+10, -60, 20, 40, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0])+10, -60, 20, 40, 0, 0)
         self.robot.WaitIdle()
         time.sleep(0.25)
-        self.robot.MoveJoints(self.newest_face_deg[0], -60, 20, 0, 0, 0)
+        self.robot.MoveJoints(math.degrees(self.joint_current_state[0]), -60, 20, 0, 0, 0)
         self.robot.WaitIdle(timeout=60)
         self.robot.SetJointAcc(15)
         self.robot.SetJointVelLimit(80)
