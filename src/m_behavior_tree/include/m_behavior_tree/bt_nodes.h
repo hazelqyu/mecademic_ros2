@@ -111,6 +111,24 @@ private:
     bool motion_started_;
 };
 
+class Chomp : public BT::StatefulActionNode {
+public:
+    Chomp(const std::string &name, const BT::NodeConfig &config);
+
+    // StatefulActionNode methods
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+    // Required to define ports
+    static BT::PortsList providedPorts();
+
+private:
+    rclcpp::Node::SharedPtr ros_node_;
+    MotionServiceClient motion_client_;
+    bool motion_started_;
+};
+
 class Dance : public BT::StatefulActionNode {
 public:
     Dance(const std::string &name, const BT::NodeConfig &config);
@@ -192,6 +210,18 @@ private:
     // Member variable to store the last message value
     bool last_msg_value_;
 };
+
+class IsTooCloseCondition : public BT::RosTopicSubNode<std_msgs::msg::Bool> {
+public:
+    IsTooCloseCondition(const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
+    BT::NodeStatus onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) override;
+    static BT::PortsList providedPorts();
+
+private:
+    // Member variable to store the last message value
+    bool last_msg_value_;
+};
+
 
 class IsHappyCondition : public BT::RosTopicSubNode<std_msgs::msg::String> {
 public:

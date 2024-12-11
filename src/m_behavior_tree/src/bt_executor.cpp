@@ -43,6 +43,9 @@ public:
     factory_.registerNodeType<IsAngryCondition>("IsAngryCondition", params);
     factory_.registerNodeType<Dash>("Dash");
 
+    factory_.registerNodeType<IsTooCloseCondition>("IsTooCloseCondition", params);
+    factory_.registerNodeType<Chomp>("Chomp");
+
     factory_.registerNodeType<ExecutionCheck>("ExecutionCheck");
     factory_.registerNodeType<GlobalExecutionCheck>("GlobalExecutionCheck");
 

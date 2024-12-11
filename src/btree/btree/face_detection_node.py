@@ -72,15 +72,17 @@ class FaceDetectorNode(Node):
         self.emotion_publisher = self.create_publisher(String,'/face_emotion',10)
         self.is_alert_publisher = self.create_publisher(Bool,'/is_alert',10)
         self.is_bored_publisher = self.create_publisher(Bool,'/is_bored',10)
+        self.is_too_close_publisher = self.create_publisher(Bool,'/is_too_close',10)
         self.closest_face_publisher = self.create_publisher(JointState, '/face_position', 10)
         self.newest_face_publisher = self.create_publisher(JointState, '/newest_face_position', 10)
         self.condition_publish_timer = self.create_timer(0.1,self.publish_condition)
         
-        self.is_scanning = True
+        self.is_scanning = False
         self.is_detected = False
         self.is_alert = False
         self.is_bored = False
-        self.emotion = ""
+        self.is_too_close = False
+        self.emotion = "Unknown"
         self.face_count = 0
         self.condition_checker = ConditionChecker()
         
@@ -92,8 +94,9 @@ class FaceDetectorNode(Node):
         # Make sure publish at least once before next check
         self.is_scanning = self.condition_checker.check_scanning(self.is_detected)
         self.is_bored = self.condition_checker.check_face_still(self.is_detected, self.closest_face_pos)
+        self.is_too_close = self.condition_checker.check_face_too_close(self.closest_face)
         self.is_alert = self.condition_checker.check_face_appear(self.face_count)
-        self.get_logger().info(f"Alert:{self.is_alert},{self.face_count}")
+        self.get_logger().info(f"Too close:{self.is_too_close}")
         
         is_scanning_msg = Bool()
         is_scanning_msg.data = self.is_scanning
@@ -110,6 +113,10 @@ class FaceDetectorNode(Node):
         is_alert_msg = Bool()
         is_alert_msg.data = self.is_alert
         self.is_alert_publisher.publish(is_alert_msg)
+        
+        is_too_close_msg = Bool()
+        is_too_close_msg.data = self.is_too_close
+        self.is_too_close_publisher.publish(is_too_close_msg)
         
         face_emotion_msg = String()
         face_emotion_msg.data = self.emotion

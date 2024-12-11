@@ -243,6 +243,10 @@ class MecademicRobotDriver(Node):
                 self.dash()
                 self.robot.WaitIdle()
                 response.success = True
+            elif request.motion_name == "chomp":
+                self.chomp()
+                self.robot.WaitIdle()
+                response.success = True
             else:
                 self.get_logger().warn(f"Unknown motion: {request.motion_name}")
                 response.success = False
@@ -370,15 +374,12 @@ class MecademicRobotDriver(Node):
         # self.robot.SetJointAcc(150)
         time_start = time.time()
         duration = 0
-        while duration<10:
+        while duration<8:
             time_now = self.get_clock().now().nanoseconds * 1e-9
             duration = time.time()-time_start
-            self.robot.MoveJoints(0,0,0,0,10,0)
-            self.robot.WaitIdle()
-            time.sleep(0.25)
-            self.robot.MoveJoints(0,0,0,0,-25,0)
-            self.robot.WaitIdle()
-            time.sleep(0.25)
+            self.robot.MoveJoints(0,-50,-10,0,30 * math.sin(2*math.pi*2*time_now+ math.pi),0)
+            time.sleep(0.08)
+
     
     def dance2(self):
         if self.music_player.songs[2].is_paused_state():
@@ -417,7 +418,6 @@ def main(args=None):
     # Create MecademicRobotDriver node
     driver = MecademicRobotDriver()
     driver.go_home()
-    # driver.dance2()
     # Spin the node to keep it active
     try:
         rclpy.spin(driver)

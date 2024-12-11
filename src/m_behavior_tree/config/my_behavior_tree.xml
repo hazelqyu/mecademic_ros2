@@ -19,6 +19,10 @@
                         <Dash name="dash"/>
                     </Sequence>
                     <Sequence>
+                        <IsTooCloseCondition name="is_too_close_condition" topic_name="/is_too_close"/>
+                        <Chomp name="chomp"/>
+                    </Sequence>
+                    <Sequence>
                         <GlobalExecutionCheck threshold="10"/>
                         <IsBoredCondition name="is_bored_condition" topic_name="/is_bored"/>
                         <Yawn name="yawn"/>

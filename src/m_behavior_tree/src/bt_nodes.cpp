@@ -331,6 +331,53 @@ void Alert::onHalted() {
     motion_started_ = false; // Reset the motion_started_ flag
 }
 
+// Chomp Node
+
+Chomp::Chomp(const std::string &name, const BT::NodeConfig &config)
+    : BT::StatefulActionNode(name, config),
+      ros_node_(rclcpp::Node::make_shared("chomp_tree_node")),
+      motion_client_(ros_node_, "/execute_motion"),
+      motion_started_(false) {
+    RCLCPP_INFO(ros_node_->get_logger(), "Chomp tree node initialized.");
+}
+
+// Define the ports (empty in this case)
+BT::PortsList Chomp::providedPorts() {
+    return {};
+}
+
+BT::NodeStatus Chomp::onStart() {
+    if (!callStateChangeService(ros_node_)) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Failed to call ClearMotion service in Chomp node.");
+        return BT::NodeStatus::FAILURE;
+    }
+    // Start the motion service if it hasn't been started yet
+    if (!motion_started_) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Calling ExecuteMotion service for Chomp...");
+        motion_client_.sendRequest("chomp");  // Send request to the service
+        motion_started_ = true;             // Mark motion as started
+    }
+    return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus Chomp::onRunning() {
+    ExecutionTimeTracker::getInstance().updateLastExecutionTime("Chomp");
+    // Check if the service is complete
+    if (motion_client_.isServiceComplete()) {
+        RCLCPP_INFO(ros_node_->get_logger(), "Chomp motion completed successfully.");
+        this->halt();
+        return BT::NodeStatus::SUCCESS; // Mark the node as complete
+    }
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Chomp motion still running...");
+    return BT::NodeStatus::RUNNING; // Keep running while the service is not complete
+}
+
+void Chomp::onHalted() {
+    RCLCPP_INFO(ros_node_->get_logger(), "Chomp node halted.");
+    motion_started_ = false; // Reset the motion_started_ flag
+}
+
 // IsScanningCondition Node
 IsScanningCondition::IsScanningCondition(
     const std::string& name, 
@@ -431,6 +478,33 @@ BT::NodeStatus IsAlertCondition::onTick(const std::shared_ptr<std_msgs::msg::Boo
 }
 
 BT::PortsList IsAlertCondition::providedPorts() {
+    return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
+}
+
+
+// IsTooCloseConditionNode
+
+IsTooCloseCondition::IsTooCloseCondition(
+    const std::string& name, 
+    const BT::NodeConfig& config, 
+    const BT::RosNodeParams& params
+) : BT::RosTopicSubNode<std_msgs::msg::Bool>(name, config, params),last_msg_value_(false) {}
+
+BT::NodeStatus IsTooCloseCondition::onTick(const std::shared_ptr<std_msgs::msg::Bool>& last_msg) {
+
+    if (last_msg) {
+        last_msg_value_ = last_msg->data;
+    }
+    RCLCPP_INFO(
+        rclcpp::get_logger("IsTooCloseCondition"), 
+        "IsTooClose: %s", 
+        // last_msg ? (last_msg->data ? "True" : "False") : "null"
+        last_msg_value_ ? "True" : "False"
+    );
+    return last_msg_value_ ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+}
+
+BT::PortsList IsTooCloseCondition::providedPorts() {
     return BT::RosTopicSubNode<std_msgs::msg::Bool>::providedBasicPorts({});
 }
 

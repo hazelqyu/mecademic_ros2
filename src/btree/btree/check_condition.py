@@ -77,6 +77,15 @@ class ConditionChecker:
     
     def update_last_exe_time(self):
         self.last_execution_time = time.time()
+        
+    def check_face_too_close(self, closest_face):
+        if not closest_face:
+            return False
+        if closest_face['depth']<0.6:
+            return True
+        else:
+            return False
+        
     
     def _is_within_range(self, pos1, pos2):
         return all(abs(p1 - p2) <= self.range_threshold for p1, p2 in zip(pos1, pos2))
